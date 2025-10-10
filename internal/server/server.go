@@ -9,7 +9,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func New(logger *slog.Logger, cl argocd.Client) *mcp.Server {
+func New(logger *slog.Logger, cl *argocd.Client) *mcp.Server {
 	s := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "argocd-mcp",

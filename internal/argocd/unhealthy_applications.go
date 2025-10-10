@@ -3,10 +3,7 @@ package argocd
 import (
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -31,7 +28,7 @@ type UnhealthyApplicationsOutput UnhealthyApplications
 
 var UnhealthyApplicationsOutputSchema, _ = jsonschema.For[UnhealthyApplicationsOutput](&jsonschema.ForOptions{})
 
-func UnhealthyApplicationsToolHandle(logger *slog.Logger, cl Client) mcp.ToolHandlerFor[UnhealthyApplicationsInput, UnhealthyApplicationsOutput] {
+func UnhealthyApplicationsToolHandle(logger *slog.Logger, cl *Client) mcp.ToolHandlerFor[UnhealthyApplicationsInput, UnhealthyApplicationsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, _ UnhealthyApplicationsInput) (*mcp.CallToolResult, UnhealthyApplicationsOutput, error) {
 		apps, err := listUnhealthyApplications(ctx, logger, cl)
 		if err != nil {
@@ -51,22 +48,10 @@ type UnhealthyApplications struct {
 }
 
 // returns the name of the applications grouped by their health status
-func listUnhealthyApplications(ctx context.Context, logger *slog.Logger, cl Client) (UnhealthyApplications, error) {
-	resp, err := cl.GetWithContext(ctx, "api/v1/applications")
+func listUnhealthyApplications(ctx context.Context, logger *slog.Logger, cl *Client) (UnhealthyApplications, error) {
+	apps, err := cl.GetApplicationsWithContext(ctx)
 	if err != nil {
 		return UnhealthyApplications{}, err
-	}
-	body, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
-		return UnhealthyApplications{}, fmt.Errorf("failed to read HTTP response body: %w", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return UnhealthyApplications{}, fmt.Errorf("unexpected Argo CD status %d: %s", resp.StatusCode, string(body))
-	}
-	apps := &argocdv3.ApplicationList{}
-	if err = json.Unmarshal(body, apps); err != nil {
-		return UnhealthyApplications{}, fmt.Errorf("failed to unmarshal application list: %w", err)
 	}
 	unhealthyApps := UnhealthyApplications{
 		Degraded:    []string{},

@@ -6,6 +6,7 @@ require (
 	github.com/argoproj/argo-cd/v3 v3.0.19
 	github.com/argoproj/gitops-engine v0.7.1-0.20250905153922-d96c3d51e4c4
 	github.com/google/jsonschema-go v0.3.0
+	github.com/h2non/gock v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.0.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.10.0
@@ -74,6 +75,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/gregjones/httpcache v0.0.0-20190611155906-901d90724c79 // indirect
+	github.com/h2non/parth v0.0.0-20190131123155-b4df798d6542 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/jbenet/go-context v0.0.0-20150711004518-d14ea06fba99 // indirect
 	github.com/jonboulle/clockwork v0.4.0 // indirect

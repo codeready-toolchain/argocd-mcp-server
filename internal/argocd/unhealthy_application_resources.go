@@ -4,9 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log/slog"
-	"net/http"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
@@ -26,7 +24,7 @@ var UnhealthyResourcesPrompt = &mcp.Prompt{
 	},
 }
 
-func UnhealthyApplicationResourcesPromptHandle(logger *slog.Logger, cl Client) func(context.Context, *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
+func UnhealthyApplicationResourcesPromptHandle(logger *slog.Logger, cl *Client) func(context.Context, *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 	return func(ctx context.Context, req *mcp.GetPromptRequest) (*mcp.GetPromptResult, error) {
 		app, ok := req.Params.Arguments["name"]
 		if !ok {
@@ -82,7 +80,7 @@ type UnhealthyApplicationResourcesInput struct {
 
 type UnhealthyApplicationResourcesOutput UnhealthyResources
 
-func UnhealthyApplicationResourcesToolHandle(logger *slog.Logger, cl Client) mcp.ToolHandlerFor[UnhealthyApplicationResourcesInput, UnhealthyApplicationResourcesOutput] {
+func UnhealthyApplicationResourcesToolHandle(logger *slog.Logger, cl *Client) mcp.ToolHandlerFor[UnhealthyApplicationResourcesInput, UnhealthyApplicationResourcesOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, in UnhealthyApplicationResourcesInput) (*mcp.CallToolResult, UnhealthyApplicationResourcesOutput, error) {
 		unhealthyResources, err := listUnhealthyApplicationResources(ctx, logger, cl, in.Name)
 		if err != nil {
@@ -92,27 +90,11 @@ func UnhealthyApplicationResourcesToolHandle(logger *slog.Logger, cl Client) mcp
 	}
 }
 
-func listUnhealthyApplicationResources(ctx context.Context, logger *slog.Logger, cl Client, name string) (UnhealthyResources, error) {
-	resp, err := cl.GetWithContext(ctx, fmt.Sprintf("api/v1/applications?name=%s", name)) // no heading `/` in the path
+func listUnhealthyApplicationResources(ctx context.Context, logger *slog.Logger, cl *Client, name string) (UnhealthyResources, error) {
+	app, err := cl.GetApplicationWithContext(ctx, name)
 	if err != nil {
-		return UnhealthyResources{}, fmt.Errorf("failed to get application '%s' from Argo CD: %w", name, err)
+		return UnhealthyResources{}, err
 	}
-	body, err := io.ReadAll(resp.Body)
-	defer resp.Body.Close()
-	if err != nil {
-		return UnhealthyResources{}, fmt.Errorf("failed to read HTTP response body: %w", err)
-	}
-	if resp.StatusCode != http.StatusOK {
-		return UnhealthyResources{}, fmt.Errorf("unexpected Argo CD status %d for application '%s': %s", resp.StatusCode, name, string(body))
-	}
-	apps := &argocdv3.ApplicationList{}
-	if err = json.Unmarshal(body, apps); err != nil {
-		return UnhealthyResources{}, fmt.Errorf("failed to unmarshal application list: %w", err)
-	}
-	if len(apps.Items) == 0 {
-		return UnhealthyResources{}, fmt.Errorf("no application found with name %s", name)
-	}
-	app := apps.Items[0]
 	// retain unhealthy resources from the name status
 	unhealthyResources := []argocdv3.ResourceStatus{}
 	for _, resource := range app.Status.Resources {

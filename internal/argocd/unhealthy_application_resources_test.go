@@ -6,19 +6,28 @@ import (
 	"os"
 	"testing"
 
+	testresources "github.com/codeready-toolchain/argocd-mcp/test/resources"
+
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
+	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestListUnhealthyApplicationResources(t *testing.T) {
 
-	t.Run("example", func(t *testing.T) {
+	t.Run("ok", func(t *testing.T) {
 		// given
-		cl := &FakeArgoCDClient{}
+		cl := NewClient("http://argocd.example.com", "secure-token", false)
 		logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 			Level: slog.LevelDebug,
 		}))
+		gock.New("http://argocd.example.com").
+			Get("/api/v1/applications").
+			MatchHeader("Authorization", "Bearer secure-token").
+			Reply(200).
+			BodyString(testresources.ExampleApplicationStr)
+		defer gock.Off() // disable HTTP interceptor after test execution
 
 		// when
 		unhealthyResources, err := listUnhealthyApplicationResources(context.Background(), logger, cl, "example")
@@ -59,5 +68,27 @@ func TestListUnhealthyApplicationResources(t *testing.T) {
 				},
 			},
 		}, unhealthyResources)
+	})
+
+	t.Run("failure", func(t *testing.T) {
+		// given
+		cl := NewClient("http://argocd.example.com", "secure-token", false)
+		logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level: slog.LevelDebug,
+		}))
+
+		gock.New("http://argocd.example.com").
+			Get("/api/v1/applications").
+			MatchHeader("Authorization", "Bearer secure-token").
+			Reply(500).
+			BodyString("mock error!")
+		defer gock.Off() // disable HTTP interceptor after test execution
+
+		// when
+		_, err := listUnhealthyApplicationResources(context.Background(), logger, cl, "example")
+
+		// then
+		require.Error(t, err)
+		assert.Error(t, err, "unexpected Argo CD status 500 for application 'example': mock error!")
 	})
 }

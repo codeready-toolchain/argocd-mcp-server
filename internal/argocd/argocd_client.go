@@ -3,21 +3,22 @@ package argocd
 import (
 	"context"
 	"crypto/tls"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strings"
+
+	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 )
 
-type Client interface {
-	GetWithContext(ctx context.Context, path string) (*http.Response, error)
-}
-
-type client struct {
+type Client struct {
 	*http.Client
 	host  string
 	token string
 }
 
-func NewClient(host string, token string, insecure bool) Client {
+func NewClient(host string, token string, insecure bool) *Client {
 	cl := http.DefaultClient
 	if insecure {
 		cl.Transport = &http.Transport{
@@ -26,18 +27,55 @@ func NewClient(host string, token string, insecure bool) Client {
 			},
 		}
 	}
-	return &client{
+	host = strings.TrimSuffix(host, "/")
+	return &Client{
 		Client: cl,
 		host:   host,
 		token:  token,
 	}
 }
 
-func (c *client) GetWithContext(ctx context.Context, path string) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("%s/%s", c.host, path), nil)
+func (c *Client) GetApplicationsWithContext(ctx context.Context) (*argocdv3.ApplicationList, error) {
+	body, err := c.doRequestWithContext(ctx, "GET", "api/v1/applications")
+	if err != nil {
+		return nil, err
+	}
+	apps := &argocdv3.ApplicationList{}
+	if err = json.Unmarshal(body, apps); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal application list: %w", err)
+	}
+	return apps, nil
+}
+
+func (c *Client) GetApplicationWithContext(ctx context.Context, name string) (*argocdv3.Application, error) {
+	body, err := c.doRequestWithContext(ctx, "GET", fmt.Sprintf("api/v1/applications?name=%s", name))
+	if err != nil {
+		return nil, err
+	}
+	apps := &argocdv3.ApplicationList{}
+	if err = json.Unmarshal(body, apps); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal application list: %w", err)
+	}
+	if len(apps.Items) == 0 {
+		return nil, fmt.Errorf("no application found with name %s", name)
+	}
+	return &apps.Items[0], nil
+}
+
+func (c *Client) doRequestWithContext(ctx context.Context, method, path string) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, method, fmt.Sprintf("%s/%s", c.host, path), nil)
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.token))
-	return c.Do(req)
+	resp, err := c.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to %s %s: %w", method, path, err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
+	if err != nil {
+		return nil, fmt.Errorf("failed to read HTTP response body: %w", err)
+	}
+	return body, nil
 }
