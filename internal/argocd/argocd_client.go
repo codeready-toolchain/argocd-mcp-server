@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
@@ -48,7 +49,7 @@ func (c *Client) GetApplicationsWithContext(ctx context.Context) (*argocdv3.Appl
 }
 
 func (c *Client) GetApplicationWithContext(ctx context.Context, name string) (*argocdv3.Application, error) {
-	body, err := c.doRequestWithContext(ctx, "GET", fmt.Sprintf("api/v1/applications?name=%s", name))
+	body, err := c.doRequestWithContext(ctx, "GET", fmt.Sprintf("api/v1/applications?name=%s", url.QueryEscape(name)))
 	if err != nil {
 		return nil, err
 	}
@@ -72,10 +73,13 @@ func (c *Client) doRequestWithContext(ctx context.Context, method, path string) 
 	if err != nil {
 		return nil, fmt.Errorf("failed to %s %s: %w", method, path, err)
 	}
-	body, err := io.ReadAll(resp.Body)
 	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read HTTP response body: %w", err)
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		return nil, fmt.Errorf("unexpected Argo CD status %d: %s", resp.StatusCode, string(body))
 	}
 	return body, nil
 }
