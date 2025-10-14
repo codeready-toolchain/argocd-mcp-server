@@ -89,6 +89,6 @@ func TestListUnhealthyApplicationResources(t *testing.T) {
 
 		// then
 		require.Error(t, err)
-		assert.EqualError(t, err, "unexpected Argo CD status 500 for application 'example': mock error!")
+		assert.EqualError(t, err, "unexpected 500 response for GET http://argocd.example.com/api/v1/applications?name=example: mock error!")
 	})
 }

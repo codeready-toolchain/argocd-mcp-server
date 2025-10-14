@@ -55,10 +55,10 @@ func (c *Client) GetApplicationWithContext(ctx context.Context, name string) (*a
 	}
 	apps := &argocdv3.ApplicationList{}
 	if err = json.Unmarshal(body, apps); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal application list: %w", err)
+		return nil, fmt.Errorf("failed to unmarshal application '%s': %w", name, err)
 	}
 	if len(apps.Items) == 0 {
-		return nil, fmt.Errorf("no application found with name %s", name)
+		return nil, fmt.Errorf("no application found with name '%s'", name)
 	}
 	return &apps.Items[0], nil
 }
@@ -79,7 +79,7 @@ func (c *Client) doRequestWithContext(ctx context.Context, method, path string) 
 		return nil, fmt.Errorf("failed to read HTTP response body: %w", err)
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return nil, fmt.Errorf("unexpected Argo CD status %d: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("unexpected %d response for %s %s/%s: %s", resp.StatusCode, method, c.host, path, string(body))
 	}
 	return body, nil
 }
