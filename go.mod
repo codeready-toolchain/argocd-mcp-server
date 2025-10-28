@@ -1,4 +1,4 @@
-module github.com/codeready-toolchain/argocd-mcp
+module github.com/codeready-toolchain/argocd-mcp-server
 
 go 1.24.6
 

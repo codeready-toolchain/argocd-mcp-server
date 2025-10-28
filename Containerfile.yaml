@@ -15,7 +15,7 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go build -v -o argocd-mcp main.go
+RUN go build -v -o argocd-mcp-server main.go
 
 ################################################################################################
 # image to be run by the GitHub Action job
@@ -23,7 +23,7 @@ RUN go build -v -o argocd-mcp main.go
 FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as argocd-mcp
 
 # Copy the generated binary into the $PATH so it can be invoked
-COPY --from=builder /usr/src/app/argocd-mcp /usr/local/bin/
+COPY --from=builder /usr/src/app/argocd-mcp-server /usr/local/bin/
 
 ENV ARGOCD_MCP_URL=https://argocd-server
 ENV ARGOCD_MCP_TOKEN=secure-token

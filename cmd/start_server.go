@@ -8,8 +8,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/codeready-toolchain/argocd-mcp/internal/argocd"
-	"github.com/codeready-toolchain/argocd-mcp/internal/server"
+	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
+	"github.com/codeready-toolchain/argocd-mcp-server/internal/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ func Execute() {
 
 // startServerCmd the command to start the Argo CD MCP server
 var startServerCmd = &cobra.Command{
-	Use:   "argocd-mcp",
+	Use:   "argocd-mcp-server",
 	Short: "Start the Argo CD MCP server",
 	PreRunE: func(_ *cobra.Command, _ []string) error {
 		if transport != "stdio" && transport != "http" {

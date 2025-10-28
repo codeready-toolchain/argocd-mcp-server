@@ -3,7 +3,8 @@ version: '3'
 tasks:
   test:
     cmds:
-      - go test ./internal/... -v --failfast
+      # The idiomatic way to disable test caching explicitly is to use -count=1
+      - go test ./internal/... -count=1 -v --failfast
 
   lint:
     cmds:
@@ -12,7 +13,7 @@ tasks:
 
   install:
     cmds:
-      - go build -o $GOPATH/bin/argocd-mcp main.go
+      - go build -o $GOPATH/bin/argocd-mcp-server main.go
  
   install-argocd-mock:
     cmds:
@@ -23,8 +24,9 @@ tasks:
       - install
       - install-argocd-mock
     cmds:
-     - go test github.com/codeready-toolchain/argocd-mcp/test/e2e/... -v -failfast
+      # The idiomatic way to disable test caching explicitly is to use -count=1
+      - go test github.com/codeready-toolchain/argocd-mcp-server/test/e2e/... -count=1 -v -failfast
 
   build-image:
     cmds:
-      - podman build -t argocd-mcp:latest . -f Containerfile.yaml
+      - podman build -t argocd-mcp-server:latest . -f Containerfile.yaml
