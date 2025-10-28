@@ -7,7 +7,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/codeready-toolchain/argocd-mcp/test/resources"
+	"github.com/codeready-toolchain/argocd-mcp-server/test/resources"
 )
 
 func main() {

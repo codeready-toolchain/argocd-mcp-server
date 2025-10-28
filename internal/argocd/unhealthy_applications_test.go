@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	testresources "github.com/codeready-toolchain/argocd-mcp/test/resources"
+	testresources "github.com/codeready-toolchain/argocd-mcp-server/test/resources"
 
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"

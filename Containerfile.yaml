@@ -15,25 +15,25 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go build -v -o argocd-mcp main.go
+RUN go build -v -o argocd-mcp-server main.go
 
 ################################################################################################
 # image to be run by the GitHub Action job
 ################################################################################################
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as argocd-mcp
+FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as argocd-mcp-server
 
 # Copy the generated binary into the $PATH so it can be invoked
-COPY --from=builder /usr/src/app/argocd-mcp /usr/local/bin/
+COPY --from=builder /usr/src/app/argocd-mcp-server /usr/local/bin/
 
-ENV ARGOCD_MCP_URL=https://argocd-server
-ENV ARGOCD_MCP_TOKEN=secure-token
-ENV ARGOCD_MCP_INSECURE=false
-ENV ARGOCD_MCP_DEBUG=false
-ENV ARGOCD_MCP_LISTEN_PORT=8080
+ENV ARGOCD_URL=https://argocd-server
+ENV ARGOCD_TOKEN=secure-token
+ENV ARGOCD_MCP_SERVER_INSECURE=false
+ENV ARGOCD_MCP_SERVER_DEBUG=false
+ENV ARGOCD_MCP_SERVER_LISTEN_PORT=8080
 
 # Run as non-root user
 USER 1001
 
 EXPOSE ${ARGOCD_MCP_LISTEN_PORT}
 
-CMD /usr/local/bin/argocd-mcp --transport http --argocd-url $ARGOCD_MCP_URL --argocd-token $ARGOCD_MCP_TOKEN --insecure $ARGOCD_MCP_INSECURE --debug $ARGOCD_MCP_DEBUG --listen :$ARGOCD_MCP_LISTEN_PORT
+CMD /usr/local/bin/argocd-mcp-server --transport http --argocd-url $ARGOCD_URL --argocd-token $ARGOCD_TOKEN --insecure $ARGOCD_MCP_SERVER_INSECURE --debug $ARGOCD_MCP_SERVER_DEBUG --listen :$ARGOCD_MCP_SERVER_LISTEN_PORT

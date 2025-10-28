@@ -12,7 +12,7 @@ import (
 	"time"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	"github.com/codeready-toolchain/argocd-mcp/internal/argocd"
+	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -78,7 +78,7 @@ func TestServer(t *testing.T) {
 
 				// then
 				require.NoError(t, err)
-				require.False(t, result.IsError)
+				require.False(t, result.IsError, result.Content[0].(*mcp.TextContent).Text)
 				// expected content
 				expectedContent := map[string]any{
 					"degraded":    []any{"a-degraded-application", "another-degraded-application"},
@@ -260,7 +260,7 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 
 func newServerCmd(ctx context.Context, transport string, mcpServerListen string, mcpServerDebug string, argocdURL string, argocdToken string) *exec.Cmd {
 	return exec.CommandContext(ctx,
-		"argocd-mcp",
+		"argocd-mcp-server",
 		"--transport", transport,
 		"--listen", mcpServerListen,
 		"--debug", mcpServerDebug,

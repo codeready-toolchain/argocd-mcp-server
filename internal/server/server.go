@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/codeready-toolchain/argocd-mcp/internal/argocd"
+	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -12,7 +12,7 @@ import (
 func New(logger *slog.Logger, cl *argocd.Client) *mcp.Server {
 	s := mcp.NewServer(
 		&mcp.Implementation{
-			Name:    "argocd-mcp",
+			Name:    "argocd-mcp-server",
 			Version: "0.1",
 		},
 		&mcp.ServerOptions{

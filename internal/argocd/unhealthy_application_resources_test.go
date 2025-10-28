@@ -6,7 +6,7 @@ import (
 	"os"
 	"testing"
 
-	testresources "github.com/codeready-toolchain/argocd-mcp/test/resources"
+	testresources "github.com/codeready-toolchain/argocd-mcp-server/test/resources"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/h2non/gock"
