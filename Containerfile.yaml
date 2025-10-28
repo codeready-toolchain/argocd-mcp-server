@@ -34,6 +34,6 @@ ENV ARGOCD_MCP_SERVER_LISTEN_PORT=8080
 # Run as non-root user
 USER 1001
 
-EXPOSE ${ARGOCD_MCP_LISTEN_PORT}
+EXPOSE ${ARGOCD_MCP_SERVER_LISTEN_PORT}
 
 CMD /usr/local/bin/argocd-mcp-server --transport http --argocd-url $ARGOCD_URL --argocd-token $ARGOCD_TOKEN --insecure $ARGOCD_MCP_SERVER_INSECURE --debug $ARGOCD_MCP_SERVER_DEBUG --listen :$ARGOCD_MCP_SERVER_LISTEN_PORT
