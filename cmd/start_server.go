@@ -29,7 +29,7 @@ func init() {
 	startServerCmd.Flags().BoolVar(&argocdInsecure, "insecure", false, "Allow insecure TLS connections to the Argo CD server")
 	startServerCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug mode")
 	startServerCmd.Flags().StringVar(&transport, "transport", "http", "Choose between 'stdio' or 'http' transport")
-	startServerCmd.Flags().StringVar(&listen, "listen", ":8080", "Specify the host and port to listen on when using the 'http' transport")
+	startServerCmd.Flags().StringVar(&listen, "listen", "0.0.0.0:8080", "Specify the host and port to listen on when using the 'http' transport")
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
