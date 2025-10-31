@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -74,12 +75,23 @@ var startServerCmd = &cobra.Command{
 				return fmt.Errorf("failed to serve on stdio: %v", err.Error())
 			}
 		default:
-			handler := mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
+			mux := http.NewServeMux()
+			// MCP endpoint
+			mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 				return srv
-			}, nil)
+			}, nil))
+			// HealthCheck endpoint.
+			mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
+					"status": "healthy",
+					"time":   time.Now().Format(time.RFC3339),
+				})
+			})
+
 			server := &http.Server{
 				Addr:         listen,
-				Handler:      handler,
+				Handler:      mux,
 				ReadTimeout:  15 * time.Second,
 				WriteTimeout: 15 * time.Second,
 				IdleTimeout:  60 * time.Second,

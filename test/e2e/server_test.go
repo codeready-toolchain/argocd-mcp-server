@@ -245,7 +245,7 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
 		session, err := cl.Connect(ctx, &mcp.StreamableClientTransport{
 			MaxRetries: 5,
-			Endpoint:   fmt.Sprintf("http://%s", os.Getenv("MCP_SERVER_LISTEN")),
+			Endpoint:   fmt.Sprintf("http://%s/mcp", os.Getenv("MCP_SERVER_LISTEN")),
 		}, nil)
 		require.NoError(t, err)
 		return session, func() {
