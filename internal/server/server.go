@@ -19,6 +19,7 @@ func New(logger *slog.Logger, cl *argocd.Client) *mcp.Server {
 			InitializedHandler: func(_ context.Context, ir *mcp.InitializedRequest) {
 				logger.Debug("initialized", "session_id", ir.Session.ID())
 			},
+			Logger: logger,
 		},
 	)
 
