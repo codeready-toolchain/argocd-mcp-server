@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,13 +12,18 @@ import (
 )
 
 func main() {
-	listen := os.Getenv("ARGOCD_SERVER_LISTEN")
-	token := os.Getenv("ARGOCD_SERVER_TOKEN")
-	debug := os.Getenv("ARGOCD_SERVER_DEBUG")
+
+	var listen string
+	var token string
+	var debug bool
+	flag.StringVar(&listen, "listen", "", "listen address")
+	flag.StringVar(&token, "token", "", "token")
+	flag.BoolVar(&debug, "debug", false, "debug mode")
+	flag.Parse()
 
 	lvl := new(slog.LevelVar)
 	lvl.Set(slog.LevelInfo)
-	if debug == "true" {
+	if debug {
 		lvl.Set(slog.LevelDebug)
 	}
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
