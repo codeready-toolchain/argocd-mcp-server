@@ -266,21 +266,29 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 }
 
 func waitForMCPServer(mcpServerListen string) error {
-	// wait until the MCP server is ready to accept connections
+	// wait until the MCP server is ready to accept connections with a timeout of 30 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 	for {
-		req, err := http.NewRequestWithContext(context.Background(), "GET", fmt.Sprintf("http://%s/health", mcpServerListen), nil)
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for MCP server to start")
+		default:
+		}
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://%s/health", mcpServerListen), nil)
 		if err != nil {
 			return fmt.Errorf("failed to create request: %w", err)
 		}
 		resp, err := http.DefaultClient.Do(req)
 		if err != nil {
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
-		defer resp.Body.Close()
+		resp.Body.Close()
 		if resp.StatusCode == http.StatusOK {
 			break
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(100 * time.Millisecond)
 	}
 	return nil
 }
