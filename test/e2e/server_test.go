@@ -234,6 +234,7 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 	return func(t *testing.T) (*mcp.ClientSession, KillMCPServerFunc) {
 		ctx := context.Background()
 		cmd := newServerCmd(ctx, "http", mcpServerListen, strconv.FormatBool(mcpServerDebug), argocdURL, argocdToken)
+		cmd.Stderr = os.Stdout
 		go func() {
 			t.Logf("starting the MCP server: %v", cmd.String())
 			if err := cmd.Run(); err != nil {
@@ -244,7 +245,6 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 				}
 			}
 		}()
-		cmd.Stderr = os.Stdout
 		t.Logf("waiting for the MCP server to start")
 		err := waitForMCPServer(mcpServerListen)
 		require.NoError(t, err, "failed to wait for the MCP server to start")

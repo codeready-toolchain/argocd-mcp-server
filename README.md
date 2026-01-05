@@ -19,6 +19,16 @@ Example:
 
 Requires [Go 1.24 (or higher)](https://go.dev/doc/install) and [Task](https://taskfile.dev/)
 
+Testing:
+```
+task test test-e2e
+```
+
+Linting
+```
+task lint
+```
+
 Build the binary with the following command:
 ```
 task install
