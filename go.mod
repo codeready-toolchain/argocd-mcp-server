@@ -5,15 +5,18 @@ go 1.24.6
 require (
 	github.com/argoproj/argo-cd/v3 v3.0.19
 	github.com/argoproj/gitops-engine v0.7.1-0.20250905153922-d96c3d51e4c4
+	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20251219102801-c4598f6cc695
 	github.com/google/jsonschema-go v0.3.0
 	github.com/h2non/gock v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.2.0
+	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/cobra v1.10.1
 	github.com/stretchr/testify v1.10.0
 	k8s.io/apimachinery v0.33.0
+	k8s.io/client-go v0.33.0
 )
 
-// replace github.com/codeready-toolchain/converse-mcp => ../converse-mcp
+replace github.com/codeready-toolchain/toolchain-e2e => github.com/xcoulon/toolchain-e2e v0.0.0-20260105134512-e9877648a5f9
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
@@ -43,7 +46,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/dlclark/regexp2 v1.11.5 // indirect
-	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
+	github.com/emicklei/go-restful/v3 v3.11.2 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/evanphx/json-patch/v5 v5.9.11 // indirect
 	github.com/exponent-io/jsonpath v0.0.0-20210407135951-1de76d718b3f // indirect
@@ -105,7 +108,6 @@ require (
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/prometheus/client_golang v1.22.0 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
@@ -144,15 +146,14 @@ require (
 	k8s.io/api v0.33.0 // indirect
 	k8s.io/apiextensions-apiserver v0.33.0 // indirect
 	k8s.io/apiserver v0.33.0 // indirect
-	k8s.io/cli-runtime v0.32.2 // indirect
-	k8s.io/client-go v0.33.0 // indirect
+	k8s.io/cli-runtime v0.32.3 // indirect
 	k8s.io/component-base v0.33.0 // indirect
 	k8s.io/component-helpers v0.32.2 // indirect
 	k8s.io/controller-manager v0.0.0 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-aggregator v0.32.2 // indirect
 	k8s.io/kube-openapi v0.0.0-20250318190949-c8a335a9a2ff // indirect
-	k8s.io/kubectl v0.32.2 // indirect
+	k8s.io/kubectl v0.32.3 // indirect
 	k8s.io/kubernetes v1.32.10 // indirect
 	k8s.io/utils v0.0.0-20241210054802-24370beab758 // indirect
 	oras.land/oras-go/v2 v2.5.0 // indirect

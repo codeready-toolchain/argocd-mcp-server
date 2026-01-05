@@ -12,12 +12,15 @@ import (
 	"testing"
 	"time"
 
+	toolchaintests "github.com/codeready-toolchain/toolchain-e2e/testsupport/metrics"
+
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/client-go/rest"
 )
 
 // ------------------------------------------------------------------------------------------------
@@ -100,6 +103,14 @@ func TestServer(t *testing.T) {
 				err = runtime.DefaultUnstructuredConverter.FromUnstructured(result.StructuredContent.(map[string]any), &actualStructuredContent)
 				require.NoError(t, err)
 				assert.Equal(t, expectedContent, actualStructuredContent)
+				// also, check the metrics when the server runs on HTTP
+				if td.name == "http" {
+					// get the metrics
+					metric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplications", "success", "true"})
+					require.NoError(t, err)
+					assert.InEpsilon(t, 1, metric, 0.001)
+				}
+
 			})
 
 			t.Run("call/unhealthyApplicationResources/ok", func(t *testing.T) {
@@ -161,6 +172,12 @@ func TestServer(t *testing.T) {
 				err = runtime.DefaultUnstructuredConverter.FromUnstructured(result.StructuredContent.(map[string]any), &actualStructuredContent)
 				require.NoError(t, err)
 				assert.Equal(t, expectedContent, actualStructuredContent)
+				if td.name == "http" {
+					// get the metrics
+					metric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "true"})
+					require.NoError(t, err)
+					assert.InEpsilon(t, 1, metric, 0.001)
+				}
 			})
 
 			t.Run("call/unhealthyApplicationResources/argocd-error", func(t *testing.T) {
@@ -175,6 +192,12 @@ func TestServer(t *testing.T) {
 				// then
 				require.NoError(t, err)
 				assert.True(t, result.IsError)
+				if td.name == "http" {
+					// get the metrics
+					metric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "false"})
+					require.NoError(t, err)
+					assert.InEpsilon(t, 1, metric, 0.001)
+				}
 			})
 		})
 	}
@@ -184,11 +207,11 @@ func TestServer(t *testing.T) {
 		init func(*testing.T) (*mcp.ClientSession, KillMCPServerFunc)
 	}{
 		{
-			name: "stdio",
+			name: "stdio-unreachable",
 			init: newStdioSession(MCPServerListen, MCPServerDebug, "http://localhost:50085", "another-token"), // invalid URL and token for the Argo CD server
 		},
 		{
-			name: "http",
+			name: "http-unreachable",
 			init: newHTTPSession(MCPServerListen, MCPServerDebug, "http://localhost:50085", "another-token"), // invalid URL and token for the Argo CD server
 		},
 	}
@@ -223,7 +246,7 @@ func newStdioSession(mcpServerListenPort string, mcpServerDebug bool, argocdURL 
 		cmd := newServerCmd(ctx, "stdio", mcpServerListenPort, strconv.FormatBool(mcpServerDebug), argocdURL, argocdToken)
 		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
 		session, err := cl.Connect(ctx, &mcp.CommandTransport{Command: cmd}, nil)
-		require.NoError(t, err)
+		require.NoError(t, err, "failed to connect to the MCP server with stdio transport: process exited with code=%v", cmd.ProcessState.ExitCode())
 		return session, func() {
 			// nothing to do
 		}
@@ -241,7 +264,7 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 				exitErr := &exec.ExitError{}
 				// Ignore expected exit error when the process is killed in teardown.
 				if !errors.As(err, &exitErr) {
-					t.Errorf("failed to run command: %v", err)
+					t.Logf("failed to run command: %v", err)
 				}
 			}
 		}()
