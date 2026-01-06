@@ -19,16 +19,25 @@ Example:
 
 Requires [Go 1.24 (or higher)](https://go.dev/doc/install) and [Task](https://taskfile.dev/)
 
-Build the binary with the following command:
+### Testing and Linting
+
+```bash
+task test test-e2e lint
 ```
+
+### Building
+
+Build the binary using the following command:
+
+```bash
 task install
 ```
 
 Build the Container image with the following command:
-```
+
+```bash
 task build-image
 ```
-
 
 ## Using the Argo CD MCP Server
 

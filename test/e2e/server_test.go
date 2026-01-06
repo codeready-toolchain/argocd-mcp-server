@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"os/exec"
 	"strconv"
@@ -23,10 +24,18 @@ import (
 // Note: make sure you ran `task install` before running this test
 // ------------------------------------------------------------------------------------------------
 
+const (
+	MCPServerListen  = "localhost:50081"
+	MCPServerDebug   = true
+	ArgoCDMockListen = "localhost:50084"
+	ArgoCDMockToken  = "secure-token"
+	ArgoCDMockDebug  = true
+)
+
 func TestServer(t *testing.T) {
 
 	// start the argocd mock server
-	cmd := exec.CommandContext(context.Background(), "argocd-mock")
+	cmd := exec.CommandContext(context.Background(), "argocd-mock", "--listen", ArgoCDMockListen, "--token", ArgoCDMockToken, "--debug", strconv.FormatBool(ArgoCDMockDebug)) //nolint:gosec // (it's ok to use `strconv.FormatBool`)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	go func() {
@@ -42,23 +51,17 @@ func TestServer(t *testing.T) {
 		t.Logf("killed the Argo CD mock server: %v", cmd.String())
 	}()
 
-	os.Setenv("MCP_SERVER_LISTEN", "localhost:50081")
-	os.Setenv("MCP_SERVER_DEBUG", "true")
-	os.Setenv("ARGOCD_SERVER_LISTEN", "localhost:50084")
-	os.Setenv("ARGOCD_SERVER_TOKEN", "secure-token")
-	os.Setenv("ARGOCD_SERVER_DEBUG", "true")
-
 	testdata := []struct {
 		name string
 		init func(*testing.T) (*mcp.ClientSession, KillMCPServerFunc)
 	}{
 		{
 			name: "stdio",
-			init: newStdioSession("localhost:50081", true, "http://localhost:50084", "secure-token"),
+			init: newStdioSession(MCPServerListen, MCPServerDebug, "http://"+ArgoCDMockListen, ArgoCDMockToken),
 		},
 		{
 			name: "http",
-			init: newHTTPSession("localhost:50081", true, "http://localhost:50084", "secure-token"),
+			init: newHTTPSession(MCPServerListen, MCPServerDebug, "http://"+ArgoCDMockListen, ArgoCDMockToken),
 		},
 	}
 
@@ -182,11 +185,11 @@ func TestServer(t *testing.T) {
 	}{
 		{
 			name: "stdio",
-			init: newStdioSession("localhost:50081", true, "http://localhost:50085", "another-token"), // invalid URL and token for the Argo CD server
+			init: newStdioSession(MCPServerListen, MCPServerDebug, "http://localhost:50085", "another-token"), // invalid URL and token for the Argo CD server
 		},
 		{
 			name: "http",
-			init: newHTTPSession("localhost:50081", true, "http://localhost:50085", "another-token"), // invalid URL and token for the Argo CD server
+			init: newHTTPSession(MCPServerListen, MCPServerDebug, "http://localhost:50085", "another-token"), // invalid URL and token for the Argo CD server
 		},
 	}
 
@@ -214,10 +217,10 @@ func TestServer(t *testing.T) {
 
 type KillMCPServerFunc func()
 
-func newStdioSession(mcpServerListen string, mcpServerDebug bool, argocdURL string, argocdToken string) func(*testing.T) (*mcp.ClientSession, KillMCPServerFunc) {
+func newStdioSession(mcpServerListenPort string, mcpServerDebug bool, argocdURL string, argocdToken string) func(*testing.T) (*mcp.ClientSession, KillMCPServerFunc) {
 	return func(t *testing.T) (*mcp.ClientSession, KillMCPServerFunc) {
 		ctx := context.Background()
-		cmd := newServerCmd(ctx, "stdio", mcpServerListen, strconv.FormatBool(mcpServerDebug), argocdURL, argocdToken)
+		cmd := newServerCmd(ctx, "stdio", mcpServerListenPort, strconv.FormatBool(mcpServerDebug), argocdURL, argocdToken)
 		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
 		session, err := cl.Connect(ctx, &mcp.CommandTransport{Command: cmd}, nil)
 		require.NoError(t, err)
@@ -231,6 +234,7 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 	return func(t *testing.T) (*mcp.ClientSession, KillMCPServerFunc) {
 		ctx := context.Background()
 		cmd := newServerCmd(ctx, "http", mcpServerListen, strconv.FormatBool(mcpServerDebug), argocdURL, argocdToken)
+		cmd.Stderr = os.Stdout
 		go func() {
 			t.Logf("starting the MCP server: %v", cmd.String())
 			if err := cmd.Run(); err != nil {
@@ -241,13 +245,16 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 				}
 			}
 		}()
-		time.Sleep(5 * time.Second)
+		t.Logf("waiting for the MCP server to start")
+		err := waitForMCPServer(mcpServerListen)
+		require.NoError(t, err, "failed to wait for the MCP server to start")
+
 		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
 		session, err := cl.Connect(ctx, &mcp.StreamableClientTransport{
 			MaxRetries: 5,
-			Endpoint:   fmt.Sprintf("http://%s/mcp", os.Getenv("MCP_SERVER_LISTEN")),
+			Endpoint:   fmt.Sprintf("http://%s/mcp", mcpServerListen),
 		}, nil)
-		require.NoError(t, err)
+		require.NoError(t, err, "failed to connect to the MCP server")
 		return session, func() {
 			t.Logf("killing the MCP server")
 			if err := cmd.Process.Kill(); err != nil {
@@ -256,6 +263,34 @@ func newHTTPSession(mcpServerListen string, mcpServerDebug bool, argocdURL strin
 			t.Logf("killed the MCP server")
 		}
 	}
+}
+
+func waitForMCPServer(mcpServerListen string) error {
+	// wait until the MCP server is ready to accept connections with a timeout of 30 seconds
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for MCP server to start")
+		default:
+		}
+		req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("http://%s/health", mcpServerListen), nil)
+		if err != nil {
+			return fmt.Errorf("failed to create request: %w", err)
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			time.Sleep(100 * time.Millisecond)
+			continue
+		}
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			break
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+	return nil
 }
 
 func newServerCmd(ctx context.Context, transport string, mcpServerListen string, mcpServerDebug string, argocdURL string, argocdToken string) *exec.Cmd {
