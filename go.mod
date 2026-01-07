@@ -5,7 +5,7 @@ go 1.24.6
 require (
 	github.com/argoproj/argo-cd/v3 v3.0.19
 	github.com/argoproj/gitops-engine v0.7.1-0.20250905153922-d96c3d51e4c4
-	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20251219102801-c4598f6cc695
+	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260107131403-b0408ed3dba6
 	github.com/google/jsonschema-go v0.3.0
 	github.com/h2non/gock v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.2.0
@@ -15,8 +15,6 @@ require (
 	k8s.io/apimachinery v0.33.0
 	k8s.io/client-go v0.33.0
 )
-
-replace github.com/codeready-toolchain/toolchain-e2e => github.com/xcoulon/toolchain-e2e v0.0.0-20260105134512-e9877648a5f9
 
 require (
 	cloud.google.com/go/compute/metadata v0.6.0 // indirect
