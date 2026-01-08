@@ -16,7 +16,7 @@ import (
 )
 
 var transport, listen, argocdURL, argocdToken string
-var argocdInsecure, debug bool
+var argocdInsecure, debug, stateless bool
 
 func init() {
 	startServerCmd.Flags().StringVar(&argocdURL, "argocd-url", "", "Specify the URL of the Argo CD server to query (required)")
@@ -29,6 +29,7 @@ func init() {
 	}
 	startServerCmd.Flags().BoolVar(&argocdInsecure, "insecure", false, "Allow insecure TLS connections to the Argo CD server")
 	startServerCmd.Flags().BoolVar(&debug, "debug", false, "Enable debug mode")
+	startServerCmd.Flags().BoolVar(&stateless, "stateless", false, "Enable stateless mode where the server does not send change notifications (required for multiple replicas)")
 	startServerCmd.Flags().StringVar(&transport, "transport", "http", "Choose between 'stdio' or 'http' transport")
 	startServerCmd.Flags().StringVar(&listen, "listen", "0.0.0.0:8080", "Specify the host and port to listen on when using the 'http' transport")
 }
@@ -58,15 +59,18 @@ var startServerCmd = &cobra.Command{
 		logger := slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
 			Level: lvl,
 		}))
-		logger.Info("starting the Argo CD MCP server", "transport", transport, "url", argocdURL, "insecure", argocdInsecure, "debug", debug)
+		logger.Info("starting the Argo CD MCP server", "transport", transport, "url", argocdURL, "insecure", argocdInsecure, "debug", debug, "stateless", stateless)
 		if debug {
 			lvl.Set(slog.LevelDebug)
 			logger.Debug("debug mode enabled")
 		}
 		cl := argocd.NewClient(argocdURL, argocdToken, argocdInsecure)
-		srv := server.New(logger, cl)
+		srv := server.New(logger, cl, stateless)
 		switch transport {
 		case "stdio":
+			if stateless {
+				return fmt.Errorf("stateless mode is not supported for stdio transport")
+			}
 			t := &mcp.LoggingTransport{
 				Transport: &mcp.StdioTransport{},
 				Writer:    cmd.ErrOrStderr(),
@@ -77,9 +81,17 @@ var startServerCmd = &cobra.Command{
 		default:
 			mux := http.NewServeMux()
 			// MCP endpoint
+			// Stateless mode configuration from server settings.
+			// When Stateless is true, the server will not send notifications to clients
+			// (e.g., tools/list_changed, prompts/list_changed). This disables dynamic
+			// tool and prompt updates but is useful for container deployments, load
+			// balancing, and serverless environments where maintaining client state
+			// is not desired or possible.
 			mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 				return srv
-			}, nil))
+			}, &mcp.StreamableHTTPOptions{
+				Stateless: stateless,
+			}))
 			// HealthCheck endpoint.
 			mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
