@@ -246,7 +246,11 @@ func newStdioSession(mcpServerListenPort string, mcpServerDebug bool, argocdURL 
 		cmd := newServerCmd(ctx, "stdio", mcpServerListenPort, strconv.FormatBool(mcpServerDebug), argocdURL, argocdToken)
 		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
 		session, err := cl.Connect(ctx, &mcp.CommandTransport{Command: cmd}, nil)
-		require.NoError(t, err, "failed to connect to the MCP server with stdio transport: process exited with code=%v", cmd.ProcessState.ExitCode())
+		exitCode := -1
+		if cmd.ProcessState != nil {
+			exitCode = cmd.ProcessState.ExitCode()
+		}
+		require.NoError(t, err, "failed to connect to the MCP server with stdio transport: process exited with code=%v", exitCode)
 		return session, func() {
 			// nothing to do
 		}
