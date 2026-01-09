@@ -7,7 +7,7 @@ import (
 
 var (
 
-	// ToolCallsTotal counts total tool invocation by tool name
+	// MCPCallsTotal counts total MCP calls by method, name (for `tools/call`) and success
 	MCPCallsTotal = promauto.NewCounterVec(
 		prometheus.CounterOpts{
 			Name: "mcp_calls_total",
@@ -16,6 +16,7 @@ var (
 		[]string{"method", "name", "success"},
 	)
 
+	// MCPCallDuration measures the duration of MCP calls by method, name (for `tools/call`) and success
 	MCPCallDuration = promauto.NewHistogramVec(
 		prometheus.HistogramOpts{
 			Name:    "mcp_call_duration_seconds",
