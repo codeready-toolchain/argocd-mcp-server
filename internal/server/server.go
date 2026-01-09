@@ -24,6 +24,7 @@ func New(logger *slog.Logger, cl *argocd.Client) *mcp.Server {
 	)
 
 	s.AddPrompt(argocd.UnhealthyResourcesPrompt, argocd.UnhealthyApplicationResourcesPromptHandle(logger, cl))
+	s.AddReceivingMiddleware(NewMetricsMiddleware(logger))
 	mcp.AddTool(s, argocd.UnhealthyApplicationsTool, argocd.UnhealthyApplicationsToolHandle(logger, cl))
 	mcp.AddTool(s, argocd.UnhealthyApplicationResourcesTool, argocd.UnhealthyApplicationResourcesToolHandle(logger, cl))
 	return s

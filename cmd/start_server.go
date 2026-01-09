@@ -12,6 +12,7 @@ import (
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/server"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/cobra"
 )
 
@@ -58,7 +59,7 @@ var startServerCmd = &cobra.Command{
 		logger := slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
 			Level: lvl,
 		}))
-		logger.Info("starting the Argo CD MCP server", "transport", transport, "url", argocdURL, "insecure", argocdInsecure, "debug", debug)
+		logger.Info("starting the Argo CD MCP server", "transport", transport, "argocd-url", argocdURL, "insecure", argocdInsecure, "debug", debug)
 		if debug {
 			lvl.Set(slog.LevelDebug)
 			logger.Debug("debug mode enabled")
@@ -76,11 +77,16 @@ var startServerCmd = &cobra.Command{
 			}
 		default:
 			mux := http.NewServeMux()
+
 			// MCP endpoint
 			mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 				return srv
 			}, nil))
-			// HealthCheck endpoint.
+
+			// Metrics endpoint
+			mux.Handle("/metrics", promhttp.Handler())
+
+			// HealthCheck endpoint
 			mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
