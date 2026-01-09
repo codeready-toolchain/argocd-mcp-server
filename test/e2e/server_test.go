@@ -194,9 +194,12 @@ func TestServer(t *testing.T) {
 				assert.True(t, result.IsError)
 				if td.name == "http" {
 					// get the metrics
-					metric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "false"})
+					callsTotalMetric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "false"})
 					require.NoError(t, err)
-					assert.InEpsilon(t, 1, metric, 0.001)
+					assert.InEpsilon(t, 1, callsTotalMetric, 0.001)
+					callsDurationCountMetric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_call_duration_seconds_count`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "false"})
+					require.NoError(t, err)
+					assert.InEpsilon(t, 1, callsDurationCountMetric, 0.001)
 				}
 			})
 		})
