@@ -31,7 +31,7 @@ func NewMetricsMiddleware(logger *slog.Logger) mcp.Middleware {
 			}
 			// increment/update the metrics
 			metrics.MCPCallsTotal.WithLabelValues(method, tool, strconv.FormatBool(success)).Inc()
-			metrics.MCPCallDuration.WithLabelValues(method, tool, strconv.FormatBool(success)).Observe(float64(duration.Milliseconds()))
+			metrics.MCPCallDuration.WithLabelValues(method, tool, strconv.FormatBool(success)).Observe(float64(duration.Seconds()))
 			return result, err
 		}
 	}
