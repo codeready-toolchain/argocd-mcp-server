@@ -28,7 +28,15 @@ jobs:
     - name: Test
       run: |
         task test
+
     
+    - name: Install Podman
+      uses: redhat-actions/podman-install@main
+
+    - name: Install Podman Compose
+      run: |
+        pip3 install podman-compose
+
     - name: E2E Tests
       env:
         GOPATH: '/home/runner/go'
