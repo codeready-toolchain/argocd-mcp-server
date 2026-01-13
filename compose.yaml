@@ -15,6 +15,7 @@ services:
       - ARGOCD_SERVER_MOCK_TOKEN=secure-token
       - ARGOCD_SERVER_MOCK_DEBUG=true
   argocd-mcp-server-ok:
+    # instance of the Argo CD MCP server with a valid URL for the Argo CD server
     image: argocd-mcp-server
     build:
       context: .
@@ -29,6 +30,7 @@ services:
       - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   argocd-mcp-server-unreachable:
+    # instance of the Argo CD MCP server with an invalid URL for the Argo CD server
     image: argocd-mcp-server
     build:
       context: .
@@ -36,7 +38,7 @@ services:
     ports:
       - "50082:8080"
     environment:
-      - ARGOCD_URL=http://argocd-server-mock:50085 // invalid URL 
+      - ARGOCD_URL=http://argocd-server-mock:50085 
       - ARGOCD_TOKEN=secure-token
       - ARGOCD_MCP_SERVER_INSECURE=true
       - ARGOCD_MCP_SERVER_DEBUG=true
