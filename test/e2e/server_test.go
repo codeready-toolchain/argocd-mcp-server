@@ -183,8 +183,6 @@ func TestServer(t *testing.T) {
 	}
 }
 
-// type KillMCPServerFunc func()
-
 func newStdioSession(mcpServerDebug bool, argocdURL string, argocdToken string, argocdInsecureURL bool) func(*testing.T) *mcp.ClientSession {
 	return func(t *testing.T) *mcp.ClientSession {
 		ctx := context.Background()
