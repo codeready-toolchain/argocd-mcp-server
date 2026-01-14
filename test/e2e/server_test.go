@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	toolchaintests "github.com/codeready-toolchain/toolchain-e2e/testsupport/metrics"
+	io_prometheus_client "github.com/prometheus/client_model/go"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
@@ -46,6 +47,17 @@ func TestServer(t *testing.T) {
 			defer session.Close()
 
 			t.Run("call/unhealthyApplications/ok", func(t *testing.T) {
+				// get the metrics before the call
+				var mcpCallsTotalMetricBefore int
+				var mcpCallsDurationSecondsBucketsBefore []*io_prometheus_client.Bucket
+				if td.name == "http" {
+					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsBucketsBefore = getMetrics(t, "http://localhost:50081", map[string]string{
+						"method":  "tools/call",
+						"name":    "unhealthyApplications",
+						"success": "true",
+					})
+				}
+
 				// when
 				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
 					Name: "unhealthyApplications",
@@ -74,15 +86,29 @@ func TestServer(t *testing.T) {
 				assert.Equal(t, expectedContent, actualStructuredContent)
 				// also, check the metrics when the server runs on HTTP
 				if td.name == "http" {
-					// get the metrics
-					metric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplications", "success", "true"})
-					require.NoError(t, err)
-					assert.InEpsilon(t, 1, metric, 0.001)
+					// get the metrics after the call
+					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsBucketsAfter := getMetrics(t, "http://localhost:50081", map[string]string{
+						"method":  "tools/call",
+						"name":    "unhealthyApplications",
+						"success": "true",
+					})
+					assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
+					assert.Equal(t, valueInLastBucket(mcpCallsDurationSecondsBucketsBefore)+1, valueInLastBucket(mcpCallsDurationSecondsBucketsAfter))
 				}
 
 			})
 
 			t.Run("call/unhealthyApplicationResources/ok", func(t *testing.T) {
+				var mcpCallsTotalMetricBefore int
+				var mcpCallsDurationSecondsBucketsBefore []*io_prometheus_client.Bucket
+				if td.name == "http" {
+					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsBucketsBefore = getMetrics(t, "http://localhost:50081", map[string]string{
+						"method":  "tools/call",
+						"name":    "unhealthyApplicationResources",
+						"success": "true",
+					})
+				}
+
 				// when
 				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
 					Name: "unhealthyApplicationResources",
@@ -142,14 +168,28 @@ func TestServer(t *testing.T) {
 				require.NoError(t, err)
 				assert.Equal(t, expectedContent, actualStructuredContent)
 				if td.name == "http" {
-					// get the metrics
-					metric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "true"})
-					require.NoError(t, err)
-					assert.InEpsilon(t, 1, metric, 0.001)
+					// get the metrics after the call
+					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsBucketsAfter := getMetrics(t, "http://localhost:50081", map[string]string{
+						"method":  "tools/call",
+						"name":    "unhealthyApplicationResources",
+						"success": "true",
+					})
+					assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
+					assert.Equal(t, valueInLastBucket(mcpCallsDurationSecondsBucketsBefore)+1, valueInLastBucket(mcpCallsDurationSecondsBucketsAfter))
 				}
 			})
 
 			t.Run("call/unhealthyApplicationResources/argocd-error", func(t *testing.T) {
+				var mcpCallsTotalMetricBefore int
+				var mcpCallsDurationSecondsBucketsBefore []*io_prometheus_client.Bucket
+				if td.name == "http" {
+					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsBucketsBefore = getMetrics(t, "http://localhost:50081", map[string]string{
+						"method":  "tools/call",
+						"name":    "unhealthyApplicationResources",
+						"success": "false",
+					})
+				}
+
 				// when
 				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
 					Name: "unhealthyApplicationResources",
@@ -162,13 +202,14 @@ func TestServer(t *testing.T) {
 				require.NoError(t, err)
 				assert.True(t, result.IsError)
 				if td.name == "http" {
-					// get the metrics
-					callsTotalMetric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_calls_total`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "false"})
-					require.NoError(t, err)
-					assert.InEpsilon(t, 1, callsTotalMetric, 0.001)
-					callsDurationCountMetric, err := toolchaintests.GetMetricValue(&rest.Config{}, "http://"+MCPServerListen, `mcp_call_duration_seconds_count`, []string{"method", "tools/call", "name", "unhealthyApplicationResources", "success", "false"})
-					require.NoError(t, err)
-					assert.InEpsilon(t, 1, callsDurationCountMetric, 0.001)
+					// get the metrics after the call
+					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsBucketsAfter := getMetrics(t, "http://localhost:50081", map[string]string{
+						"method":  "tools/call",
+						"name":    "unhealthyApplicationResources",
+						"success": "false",
+					})
+					assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
+					assert.Equal(t, valueInLastBucket(mcpCallsDurationSecondsBucketsBefore)+1, valueInLastBucket(mcpCallsDurationSecondsBucketsAfter))
 				}
 			})
 		})
@@ -207,6 +248,23 @@ func TestServer(t *testing.T) {
 		})
 
 	}
+}
+
+func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (int, []*io_prometheus_client.Bucket) {
+	labelStrings := make([]string, 0, 2*len(labels))
+	for k, v := range labels {
+		labelStrings = append(labelStrings, k)
+		labelStrings = append(labelStrings, v)
+	}
+	mcpCallsTotalMetric, err := toolchaintests.GetMetricValue(&rest.Config{}, mcpServerURL, `mcp_calls_total`, labelStrings)
+	require.NoError(t, err)
+	mcpCallsDurationSecondsBuckets, err := toolchaintests.GetHistogramBuckets(&rest.Config{}, mcpServerURL, `mcp_call_duration_seconds`, labelStrings)
+	require.NoError(t, err)
+	return int(mcpCallsTotalMetric), mcpCallsDurationSecondsBuckets
+}
+
+func valueInLastBucket(buckets []*io_prometheus_client.Bucket) int {
+	return int(*buckets[len(buckets)-1].CumulativeCount)
 }
 
 func newStdioSession(mcpServerDebug bool, argocdURL string, argocdToken string, argocdInsecureURL bool) func(*testing.T) *mcp.ClientSession {
