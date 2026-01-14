@@ -1,0 +1,43 @@
+name: argocd-mcp-server-e2e
+
+version: '3.8'
+services:
+  argocd-server-mock:
+    image: argocd-server-mock
+    build:
+      context: .
+      dockerfile: ./test/e2e/argocd-server-mock/Containerfile
+    ports:
+      - "50084:50084"
+    environment:
+      - ARGOCD_SERVER_MOCK_LISTEN_HOST=0.0.0.0
+      - ARGOCD_SERVER_MOCK_LISTEN_PORT=50084
+      - ARGOCD_SERVER_MOCK_TOKEN=secure-token
+      - ARGOCD_SERVER_MOCK_DEBUG=true
+  argocd-mcp-server-ok:
+    # instance of the Argo CD MCP server with a valid URL for the Argo CD server
+    image: argocd-mcp-server
+    build:
+      context: .
+      dockerfile: Containerfile
+    ports:
+      - "50081:8080"
+    environment:
+      - ARGOCD_URL=http://argocd-server-mock:50084
+      - ARGOCD_TOKEN=secure-token
+      - ARGOCD_MCP_SERVER_INSECURE=true
+      - ARGOCD_MCP_SERVER_DEBUG=true
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
+  argocd-mcp-server-unreachable:
+    # instance of the Argo CD MCP server with an invalid URL for the Argo CD server
+    image: argocd-mcp-server
+    ports:
+      - "50082:8080"
+    environment:
+      - ARGOCD_URL=http://argocd-server-mock:50085 
+      - ARGOCD_TOKEN=secure-token
+      - ARGOCD_MCP_SERVER_INSECURE=true
+      - ARGOCD_MCP_SERVER_DEBUG=true
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
