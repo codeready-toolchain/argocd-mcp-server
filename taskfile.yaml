@@ -37,4 +37,4 @@ tasks:
   # Continuous Deployment
   build-image:
     cmds:
-      - podman build --platform linux/amd64 --no-cache -t argocd-mcp-server:latest . -f Containerfile.yaml
+      - podman build --platform linux/amd64 --no-cache -t argocd-mcp-server:latest . -f Containerfile
