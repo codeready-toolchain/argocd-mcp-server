@@ -48,7 +48,7 @@ func TestServer(t *testing.T) {
 
 			t.Run("call/unhealthyApplications/ok", func(t *testing.T) {
 				// get the metrics before the call
-				var mcpCallsTotalMetricBefore int
+				var mcpCallsTotalMetricBefore int64
 				var mcpCallsDurationSecondsBucketsBefore []*io_prometheus_client.Bucket
 				if td.name == "http" {
 					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsBucketsBefore = getMetrics(t, "http://localhost:50081", map[string]string{
@@ -99,7 +99,7 @@ func TestServer(t *testing.T) {
 			})
 
 			t.Run("call/unhealthyApplicationResources/ok", func(t *testing.T) {
-				var mcpCallsTotalMetricBefore int
+				var mcpCallsTotalMetricBefore int64
 				var mcpCallsDurationSecondsBucketsBefore []*io_prometheus_client.Bucket
 				if td.name == "http" {
 					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsBucketsBefore = getMetrics(t, "http://localhost:50081", map[string]string{
@@ -180,7 +180,7 @@ func TestServer(t *testing.T) {
 			})
 
 			t.Run("call/unhealthyApplicationResources/argocd-error", func(t *testing.T) {
-				var mcpCallsTotalMetricBefore int
+				var mcpCallsTotalMetricBefore int64
 				var mcpCallsDurationSecondsBucketsBefore []*io_prometheus_client.Bucket
 				if td.name == "http" {
 					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsBucketsBefore = getMetrics(t, "http://localhost:50081", map[string]string{
@@ -250,7 +250,7 @@ func TestServer(t *testing.T) {
 	}
 }
 
-func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (int, []*io_prometheus_client.Bucket) {
+func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (int64, []*io_prometheus_client.Bucket) { //nolint:unparam
 	labelStrings := make([]string, 0, 2*len(labels))
 	for k, v := range labels {
 		labelStrings = append(labelStrings, k)
@@ -260,11 +260,11 @@ func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (in
 	require.NoError(t, err)
 	mcpCallsDurationSecondsBuckets, err := toolchaintests.GetHistogramBuckets(&rest.Config{}, mcpServerURL, `mcp_call_duration_seconds`, labelStrings)
 	require.NoError(t, err)
-	return int(mcpCallsTotalMetric), mcpCallsDurationSecondsBuckets
+	return int64(mcpCallsTotalMetric), mcpCallsDurationSecondsBuckets
 }
 
-func valueInLastBucket(buckets []*io_prometheus_client.Bucket) int {
-	return int(*buckets[len(buckets)-1].CumulativeCount)
+func valueInLastBucket(buckets []*io_prometheus_client.Bucket) int64 {
+	return int64(buckets[len(buckets)-1].GetCumulativeCount()) //nolint:gosec
 }
 
 func newStdioSession(mcpServerDebug bool, argocdURL string, argocdToken string, argocdInsecureURL bool) func(*testing.T) *mcp.ClientSession {
