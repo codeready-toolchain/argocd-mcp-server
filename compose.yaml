@@ -6,7 +6,7 @@ services:
     image: argocd-server-mock
     build:
       context: .
-      dockerfile: ./test/e2e/argocd-server-mock/Containerfile.yaml
+      dockerfile: ./test/e2e/argocd-server-mock/Containerfile
     ports:
       - "50084:50084"
     environment:
@@ -19,7 +19,7 @@ services:
     image: argocd-mcp-server
     build:
       context: .
-      dockerfile: Containerfile.yaml
+      dockerfile: Containerfile
     ports:
       - "50081:8080"
     environment:
