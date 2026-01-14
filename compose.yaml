@@ -1,6 +1,5 @@
 name: argocd-mcp-server-e2e
 
-version: '3.8'
 services:
   argocd-server-mock:
     image: argocd-server-mock

@@ -16,15 +16,15 @@ tasks:
   # E2E Tests
   podman-compose-build:
     cmds:
-      - podman compose build
+      - podman-compose build
   
   podman-compose-up:
     cmds:
-      - podman compose up -d
+      - podman-compose up -d
 
   podman-compose-down:
     cmds:
-      - podman compose down
+      - podman-compose down
   
   test-e2e:
     deps:
