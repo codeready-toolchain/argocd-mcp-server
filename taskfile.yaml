@@ -1,32 +1,40 @@
 version: '3'
 
 tasks:
+  # Unit Tests
   test:
     cmds:
       # The idiomatic way to disable test caching explicitly is to use -count=1
       - go test ./internal/... -count=1 -v --failfast
 
+  # Linting
   lint:
     cmds:
       - curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $GOPATH/bin
       - $GOPATH/bin/golangci-lint run -v -c .golangci.yml ./...
 
+  # E2E Tests
   install:
     cmds:
       - go build -o $GOPATH/bin/argocd-mcp-server main.go
- 
-  install-argocd-mock:
-    cmds:
-      - go build -o $GOPATH/bin/argocd-mock test/e2e/argocd-mock/main.go
 
+  podman-compose-up:
+    cmds:
+      - podman-compose up -d
+
+  podman-compose-down:
+    cmds:
+      - podman-compose down
+  
   test-e2e:
     deps:
       - install
-      - install-argocd-mock
+      - podman-compose-up
     cmds:
       # The idiomatic way to disable test caching explicitly is to use -count=1
       - go test github.com/codeready-toolchain/argocd-mcp-server/test/e2e/... -count=1 -v -failfast
 
+  # Continuous Deployment
   build-image:
     cmds:
       - podman build --platform linux/amd64 --no-cache -t argocd-mcp-server:latest . -f Containerfile.yaml

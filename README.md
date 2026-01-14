@@ -25,6 +25,9 @@ Requires [Go 1.24 (or higher)](https://go.dev/doc/install) and [Task](https://ta
 task test test-e2e lint
 ```
 
+Note: the e2e tests rely on Podman and the podman-compose extension to build images and run containers for the MCP server and a mock instance of Argo CD. 
+See [Podman installation](https://podman.io/docs/installation) and [podman-compose extension installtion](https://github.com/containers/podman-compose?tab=readme-ov-file#installation) to setup these tools in your local environment.
+
 ### Building
 
 Build the binary using the following command:

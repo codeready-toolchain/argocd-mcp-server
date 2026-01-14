@@ -1,14 +1,14 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
 	"time"
 
-	"github.com/codeready-toolchain/argocd-mcp-server/test/resources"
+	testresources "github.com/codeready-toolchain/argocd-mcp-server/test/resources"
+	flag "github.com/spf13/pflag"
 )
 
 func main() {
@@ -29,6 +29,7 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
 		Level: lvl,
 	}))
+	logger.Debug("debug mode enabled")
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api/v1/applications", func(w http.ResponseWriter, r *http.Request) {
@@ -41,7 +42,7 @@ func main() {
 			logger.Debug("serving example application")
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			_, _ = w.Write([]byte(resources.ExampleApplicationStr))
+			_, _ = w.Write([]byte(testresources.ExampleApplicationStr))
 			return
 		case r.URL.Query().Get("name") == "example-error":
 			logger.Debug("serving example error application")
@@ -51,7 +52,7 @@ func main() {
 		logger.Debug("serving mock applications")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = w.Write([]byte(resources.ApplicationsStr))
+		_, _ = w.Write([]byte(testresources.ApplicationsStr))
 	})
 
 	srv := &http.Server{
@@ -61,7 +62,7 @@ func main() {
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
-	logger.Info("serving argocd mock", "url", srv.Addr)
+	logger.Info("serving argocd mock", "debug", debug, "listen", listen, "token", token)
 	if err := srv.ListenAndServe(); err != nil {
 		panic(err)
 	}
