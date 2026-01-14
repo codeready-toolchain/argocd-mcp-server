@@ -1,0 +1,13 @@
+ignored-vulnerabilities:
+  # Kubernetes GitRepo Volume Inadvertent Local Repository Access in k8s.io/kubernetes
+  # Found in: k8s.io/kubernetes/pkg/apis/flowcontrol/v1beta1@v1.33.6
+  # Fixed in: N/A
+  - id: GO-2025-3521
+    info: https://pkg.go.dev/vuln/GO-2025-3521
+    silence-until: 2026-02-12
+  # Kubernetes kube-apiserver Vulnerable to Race Condition in k8s.io/kubernetes
+  # Found in: k8s.io/kubernetes/pkg/apis/admissionregistration/v1@v1.33.6
+  # Fixed in: N/A
+  - id: GO-2025-3547
+    info: https://pkg.go.dev/vuln/GO-2025-3547
+    silence-until: 2026-02-12
