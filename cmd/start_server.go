@@ -59,7 +59,7 @@ var startServerCmd = &cobra.Command{
 		logger := slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
 			Level: lvl,
 		}))
-		logger.Info("starting the Argo CD MCP server", "transport", transport, "argocd-url", argocdURL, "insecure", argocdInsecure, "debug", debug)
+		logger.Info("starting the Argo CD MCP server", "transport", transport, "listen", listen, "argocd-url", argocdURL, "insecure", argocdInsecure, "debug", debug)
 		if debug {
 			lvl.Set(slog.LevelDebug)
 			logger.Debug("debug mode enabled")
