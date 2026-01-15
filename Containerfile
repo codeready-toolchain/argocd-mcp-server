@@ -2,10 +2,7 @@
 # Builder image
 # See https://hub.docker.com/_/golang/
 ################################################################################################
-FROM golang:1.24 as builder
-
-ARG OS=linux
-ARG ARCH=amd64
+FROM golang:1.24 AS builder
 
 WORKDIR /usr/src/app
 

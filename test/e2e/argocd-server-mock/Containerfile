@@ -4,9 +4,6 @@
 ################################################################################################
 FROM golang:1.24 as argocd-mock-server-builder
 
-ARG OS=linux
-ARG ARCH=amd64
-
 WORKDIR /usr/src/app
 
 # pre-copy/cache parent go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
