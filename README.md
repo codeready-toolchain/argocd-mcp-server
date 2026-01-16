@@ -2,6 +2,7 @@
 
 Argo CD MCP is a Model Context Protocol Server to converse with Argo CD from a UI such as Anthropic's Claude or Block's Goose
 
+
 ## Features
 
 - Prompts:
