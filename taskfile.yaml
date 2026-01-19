@@ -40,7 +40,7 @@ tasks:
 
   build-image:
     cmds:
-      - podman build --build-arg --no-cache -t argocd-mcp-server:latest . -f Containerfile
+      - podman build --no-cache -t argocd-mcp-server:latest . -f Containerfile
   
   build-image-linux-amd64:
     cmds:
