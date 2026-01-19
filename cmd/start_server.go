@@ -91,19 +91,14 @@ var startServerCmd = &cobra.Command{
 			// is not desired or possible.
 			mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 				return srv
-<<<<<<< HEAD
 			}, &mcp.StreamableHTTPOptions{
 				Stateless: stateless,
 			}))
-			// HealthCheck endpoint.
-=======
-			}, nil))
 
 			// Metrics endpoint
 			mux.Handle("/metrics", promhttp.Handler())
 
 			// HealthCheck endpoint
->>>>>>> master
 			mux.HandleFunc("/health", func(w http.ResponseWriter, _ *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]string{ //nolint:errcheck
