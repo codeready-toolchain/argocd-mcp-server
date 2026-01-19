@@ -21,7 +21,11 @@ jobs:
         with:
           image: codeready-toolchain/argocd-mcp-server
           tags: latest ${{ env.COMMIT_SHORT_SHA }}
-          containerfiles: Containerfile
+          containerfile: Containerfile
+          platform: linux/amd64
+          build-args:
+            GOOS=linux
+            GOARCH=amd64
 
       - name: Log into quay.io
         uses: redhat-actions/podman-login@v1
