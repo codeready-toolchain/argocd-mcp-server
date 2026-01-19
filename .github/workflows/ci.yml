@@ -57,7 +57,8 @@ jobs:
       with:
         image: codeready-toolchain/argocd-mcp-server
         tags: latest # we won't push the image to a registry in this workflow, so we're good with just the `latest` tag
-        containerfile: Containerfile
+        containerfiles: Containerfile
+        platform: linux/amd64
       
   lint:
     name: Lint
