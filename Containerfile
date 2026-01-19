@@ -25,8 +25,6 @@ RUN ls -la /usr/src/app/argocd-mcp-server
 ################################################################################################
 FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi10/ubi-micro:latest AS argocd-mcp-server
 
-RUN echo "Cooking the 'argocd-mcp-server' image for $TARGETPLATFORM"
-
 # Copy the generated binary into the $PATH so it can be invoked
 COPY --from=builder /usr/src/app/argocd-mcp-server /usr/local/bin/
 
