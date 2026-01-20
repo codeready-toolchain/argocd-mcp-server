@@ -472,7 +472,7 @@ func newHTTPServerCmd(ctx context.Context, argocdURL, argocdToken, listen string
 	if stateless {
 		args = append(args, "--stateless")
 	}
-	return exec.CommandContext(ctx, "argocd-mcp-server", args...) //nolint:gosec
+	return exec.CommandContext(ctx, "argocd-mcp-server", args...)
 }
 
 func startServer(t *testing.T, cmd *exec.Cmd, listen string) *exec.Cmd {
@@ -504,7 +504,15 @@ func waitForServer(t *testing.T, mcpURL string) {
 	deadline := time.Now().Add(30 * time.Second)
 
 	for time.Now().Before(deadline) {
-		resp, err := client.Get(healthURL)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
+		if err != nil {
+			cancel()
+			time.Sleep(500 * time.Millisecond)
+			continue
+		}
+		resp, err := client.Do(req)
+		cancel()
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == http.StatusOK {
