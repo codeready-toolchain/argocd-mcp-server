@@ -40,3 +40,16 @@ services:
       - ARGOCD_MCP_SERVER_DEBUG=true
       - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
+  argocd-mcp-server-stateless:
+    # instance of the Argo CD MCP server in stateless mode
+    image: argocd-mcp-server
+    ports:
+      - "50083:8080"
+    environment:
+      - ARGOCD_URL=http://argocd-server-mock:50084
+      - ARGOCD_TOKEN=secure-token
+      - ARGOCD_MCP_SERVER_INSECURE=true
+      - ARGOCD_MCP_SERVER_DEBUG=true
+      - ARGOCD_MCP_SERVER_STATELESS=true
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
