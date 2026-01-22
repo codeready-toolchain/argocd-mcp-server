@@ -5,13 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
-	"net/http"
-	"os"
 	"os/exec"
 	"strconv"
-	"strings"
 	"testing"
-	"time"
 
 	toolchaintests "github.com/codeready-toolchain/toolchain-e2e/testsupport/metrics"
 
@@ -28,6 +24,12 @@ import (
 // Note: make sure you ran `task install` before running this test
 // ------------------------------------------------------------------------------------------------
 
+// TestServer verifies basic MCP functionality with both stdio and http transports.
+// Both transports run in stateful mode (ListChanged enabled) and test:
+// - Tool calls (unhealthyApplications, unhealthyApplicationResources)
+// - Error handling (argocd-error, unreachable scenarios)
+// - Metrics collection (for http transport)
+// - Session reuse across multiple tool calls
 func TestServer(t *testing.T) {
 
 	testdata := []struct {
@@ -42,13 +44,9 @@ func TestServer(t *testing.T) {
 			name: "http",
 			init: newHTTPSession("http://localhost:50081/mcp"),
 		},
-		{
-			name: "http-stateless",
-			init: newHTTPSession("http://localhost:50083/mcp"),
-		},
 	}
 
-	// test stdio and http transports with a valid Argo CD client
+	// Test stdio and http transports with a valid Argo CD client (stateful mode)
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
 			// given
@@ -223,9 +221,8 @@ func TestServer(t *testing.T) {
 			})
 
 			t.Run("verify/capabilities/listChanged", func(t *testing.T) {
-				// Verify the ListChanged capability based on server mode
-				expectedListChanged := td.name != "http-stateless"
-				assertListChanged(t, session, expectedListChanged)
+				// Both stdio and http transports use stateful mode by default
+				assertListChanged(t, session, true)
 			})
 		})
 	}
@@ -265,85 +262,86 @@ func TestServer(t *testing.T) {
 	}
 }
 
-// TestStatelessMultipleReplicas verifies that multiple stateless server instances
-// can serve requests independently without maintaining client state
-func TestStatelessMultipleReplicas(t *testing.T) {
-	// given - start 2 server instances with --stateless flag
-	argocdURL := "http://localhost:50084"
-	argocdToken := "secure-token"
+// TestStateless verifies that multiple stateless server instances work correctly
+// with load balancing across replicas. This comprehensive test validates:
+// - Initialize response and capabilities
+// - Session reuse and independence
+// - Multiple replicas serving requests independently
+// - Tools functionality in stateless mode
+// - Concurrent client connections
+// - No ListChanged notifications
+func TestStateless(t *testing.T) {
+	ctx := context.Background()
+	serverURL := "http://localhost:50090/mcp"
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
-	defer cancel()
+	t.Run("initialize response validates stateless mode", func(t *testing.T) {
+		session, err := newClientSession(ctx, serverURL, "e2e-test-init-validation")
+		require.NoError(t, err)
+		defer session.Close()
 
-	// Start server instance 1 on port 8091
-	server1 := startServer(t, newHTTPServerCmd(ctx, argocdURL, argocdToken, "localhost:8091", true, true), "localhost:8091")
-	defer stopServer(t, server1)
+		// Comprehensive validation of initialize response for stateless mode
+		assertInitializeResponse(t, session, true)
+		
+		// Verify ListChanged is false (no notifications)
+		assertListChanged(t, session, false)
+	})
 
-	// Start server instance 2 on port 8092
-	server2 := startServer(t, newHTTPServerCmd(ctx, argocdURL, argocdToken, "localhost:8092", true, true), "localhost:8092")
-	defer stopServer(t, server2)
+	t.Run("single session can be reused", func(t *testing.T) {
+		// In stateless mode, you CAN reuse the same session
+		// Stateless means no server-side state, not "no sessions"
+		session, err := newClientSession(ctx, serverURL, "e2e-test-reused-session")
+		require.NoError(t, err)
+		defer session.Close()
 
-	// Wait for servers to be ready
-	waitForServer(t, "http://localhost:8091/mcp")
-	waitForServer(t, "http://localhost:8092/mcp")
+		// Make multiple requests on the same session
+		for i := 0; i < 5; i++ {
+			tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
+			require.NoError(t, err, "should list tools on request %d", i)
+			assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
+		}
+	})
 
-	t.Run("multiple clients can connect to different replicas", func(t *testing.T) {
-		session1, err := newClientSession(ctx, "http://localhost:8091/mcp", "e2e-test-client-1")
-		require.NoError(t, err, "should connect to server 1")
+	t.Run("multiple sessions have identical tools (no shared state)", func(t *testing.T) {
+		// Create two sessions
+		session1, err := newClientSession(ctx, serverURL, "e2e-test-session-1")
+		require.NoError(t, err)
 		defer session1.Close()
 
-		session2, err := newClientSession(ctx, "http://localhost:8092/mcp", "e2e-test-client-2")
-		require.NoError(t, err, "should connect to server 2")
+		session2, err := newClientSession(ctx, serverURL, "e2e-test-session-2")
+		require.NoError(t, err)
 		defer session2.Close()
 
-		// Verify both can list tools
+		// Both sessions should get identical tool lists (stateless = no per-session customization)
 		tools1, err := session1.ListTools(ctx, &mcp.ListToolsParams{})
 		require.NoError(t, err)
-		assert.NotEmpty(t, tools1.Tools, "server 1 should have tools")
 
 		tools2, err := session2.ListTools(ctx, &mcp.ListToolsParams{})
 		require.NoError(t, err)
-		assert.NotEmpty(t, tools2.Tools, "server 2 should have tools")
 
-		// Verify both have the same tools (stateless replicas are identical)
-		assert.Len(t, tools2.Tools, len(tools1.Tools),
-			"both replicas should have the same number of tools")
+		// Verify both have the same tools
+		require.Len(t, tools2.Tools, len(tools1.Tools), "both sessions should see same tools")
+		for i, tool := range tools1.Tools {
+			assert.Equal(t, tool.Name, tools2.Tools[i].Name, "tool %d should have same name", i)
+		}
 	})
 
-	t.Run("round-robin requests work across replicas", func(t *testing.T) {
-		// Simulate load balancing by alternating between servers
-		servers := []string{
-			"http://localhost:8091/mcp",
-			"http://localhost:8092/mcp",
-		}
-
-		// Make 10 requests alternating between servers
+	t.Run("multiple independent clients work (load-balanced)", func(t *testing.T) {
+		// Simulates multiple clients in a load-balanced deployment
+		// Each client might hit a different replica
 		for i := 0; i < 10; i++ {
-			serverURL := servers[i%len(servers)] //nolint:gosec // modulo with constant array length is safe
-			t.Logf("Request %d to %s", i+1, serverURL)
-
 			session, err := newClientSession(ctx, serverURL, fmt.Sprintf("e2e-test-client-%d", i))
-			require.NoError(t, err, "should connect to %s on request %d", serverURL, i+1)
+			require.NoError(t, err, "should connect on request %d", i)
 
-			// Make a request
 			tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
-			require.NoError(t, err, "should list tools on request %d", i+1)
-			assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i+1)
+			require.NoError(t, err, "should list tools on request %d", i)
+			assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
 
 			session.Close()
 		}
 	})
 
-	t.Run("verify stateless mode - no ListChanged notifications", func(t *testing.T) {
-		session, err := newClientSession(ctx, "http://localhost:8091/mcp", "e2e-test-client-stateless-check")
-		require.NoError(t, err)
-		defer session.Close()
-
-		assertListChanged(t, session, false)
-	})
-
-	t.Run("tools work correctly in stateless mode", func(t *testing.T) {
-		session, err := newClientSession(ctx, "http://localhost:8091/mcp", "e2e-test-client-tool-check")
+	t.Run("tools work correctly with content validation", func(t *testing.T) {
+		session, err := newClientSession(ctx, serverURL, "e2e-test-tool-check")
 		require.NoError(t, err)
 		defer session.Close()
 
@@ -352,46 +350,41 @@ func TestStatelessMultipleReplicas(t *testing.T) {
 			Name: "unhealthyApplications",
 		})
 		require.NoError(t, err)
-		require.False(t, result.IsError, "tool call should succeed in stateless mode")
+		require.False(t, result.IsError, "tool call should succeed")
 		assert.NotEmpty(t, result.Content, "tool should return content")
-	})
-}
 
-// TestStatefulSingleReplica verifies that without --stateless flag, the server
-// operates in stateful mode (for comparison)
-func TestStatefulSingleReplica(t *testing.T) {
-	argocdURL := "http://localhost:50084"
-	argocdToken := "secure-token"
-
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
-	defer cancel()
-
-	// Start server WITHOUT --stateless flag
-	server := startServer(t, newHTTPServerCmd(ctx, argocdURL, argocdToken, "localhost:8093", false, true), "localhost:8093")
-	defer stopServer(t, server)
-
-	waitForServer(t, "http://localhost:8093/mcp")
-
-	t.Run("verify stateful mode - ListChanged enabled", func(t *testing.T) {
-		session, err := newClientSession(ctx, "http://localhost:8093/mcp", "e2e-test-client-stateful-check")
+		// Verify the content is correct
+		expectedContent := map[string]any{
+			"degraded":    []any{"a-degraded-application", "another-degraded-application"},
+			"progressing": []any{"a-progressing-application", "another-progressing-application"},
+			"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
+		}
+		expectedContentText, err := json.Marshal(expectedContent)
 		require.NoError(t, err)
-		defer session.Close()
 
-		assertListChanged(t, session, true)
+		resultContent, ok := result.Content[0].(*mcp.TextContent)
+		require.True(t, ok)
+		assert.JSONEq(t, string(expectedContentText), resultContent.Text)
 	})
 
-	t.Run("tools work correctly in stateful mode", func(t *testing.T) {
-		session, err := newClientSession(ctx, "http://localhost:8093/mcp", "e2e-test-client-tool-check-stateful")
-		require.NoError(t, err)
-		defer session.Close()
+	t.Run("concurrent connections work correctly", func(t *testing.T) {
+		// Create multiple concurrent sessions
+		sessions := make([]*mcp.ClientSession, 5)
+		for i := 0; i < 5; i++ {
+			session, err := newClientSession(ctx, serverURL, fmt.Sprintf("e2e-test-concurrent-%d", i))
+			require.NoError(t, err, "should connect session %d", i)
+			sessions[i] = session
+			defer session.Close()
+		}
 
-		// Call a tool to verify it works in stateful mode
-		result, err := session.CallTool(ctx, &mcp.CallToolParams{
-			Name: "unhealthyApplications",
-		})
-		require.NoError(t, err)
-		require.False(t, result.IsError, "tool call should succeed in stateful mode")
-		assert.NotEmpty(t, result.Content, "tool should return content")
+		// All sessions should be able to call tools simultaneously
+		for i, session := range sessions {
+			result, err := session.CallTool(ctx, &mcp.CallToolParams{
+				Name: "unhealthyApplications",
+			})
+			require.NoError(t, err, "session %d should call tool", i)
+			require.False(t, result.IsError, "session %d tool call should succeed", i)
+		}
 	})
 }
 
@@ -456,75 +449,6 @@ func newStdioServerCmd(ctx context.Context, mcpServerDebug bool, argocdURL strin
 	)
 }
 
-// Helper functions for stateless tests
-
-func newHTTPServerCmd(ctx context.Context, argocdURL, argocdToken, listen string, stateless, insecure bool) *exec.Cmd {
-	args := []string{
-		"--argocd-url", argocdURL,
-		"--argocd-token", argocdToken,
-		"--transport", "http",
-		"--listen", listen,
-		"--debug",
-	}
-	if insecure {
-		args = append(args, "--insecure")
-	}
-	if stateless {
-		args = append(args, "--stateless")
-	}
-	return exec.CommandContext(ctx, "argocd-mcp-server", args...)
-}
-
-func startServer(t *testing.T, cmd *exec.Cmd, listen string) *exec.Cmd {
-	t.Helper()
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	err := cmd.Start()
-	require.NoError(t, err, "should start server on %s", listen)
-	t.Logf("Started server on %s (PID: %d)", listen, cmd.Process.Pid)
-	return cmd
-}
-
-func stopServer(t *testing.T, cmd *exec.Cmd) {
-	t.Helper()
-	if cmd != nil && cmd.Process != nil {
-		t.Logf("Stopping server PID %d", cmd.Process.Pid)
-		_ = cmd.Process.Kill()
-		_ = cmd.Wait()
-	}
-}
-
-func waitForServer(t *testing.T, mcpURL string) {
-	t.Helper()
-	// Convert MCP URL to health endpoint URL (e.g., http://localhost:8091/mcp -> http://localhost:8091/health)
-	healthURL := strings.Replace(mcpURL, "/mcp", "/health", 1)
-	t.Logf("Waiting for server at %s to be ready", healthURL)
-
-	client := &http.Client{Timeout: 2 * time.Second}
-	deadline := time.Now().Add(30 * time.Second)
-
-	for time.Now().Before(deadline) {
-		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-		req, err := http.NewRequestWithContext(ctx, http.MethodGet, healthURL, nil)
-		if err != nil {
-			cancel()
-			time.Sleep(500 * time.Millisecond)
-			continue
-		}
-		resp, err := client.Do(req)
-		cancel()
-		if err == nil {
-			resp.Body.Close()
-			if resp.StatusCode == http.StatusOK {
-				t.Logf("Server at %s is ready", healthURL)
-				return
-			}
-		}
-		time.Sleep(500 * time.Millisecond)
-	}
-	t.Fatalf("Timeout waiting for server at %s", healthURL)
-}
-
 func newClientSession(ctx context.Context, endpoint, clientName string) (*mcp.ClientSession, error) {
 	client := mcp.NewClient(&mcp.Implementation{
 		Name:    clientName,
@@ -549,5 +473,43 @@ func assertListChanged(t *testing.T, session *mcp.ClientSession, expected bool) 
 	if initResult.Capabilities.Prompts != nil {
 		assert.Equal(t, expected, initResult.Capabilities.Prompts.ListChanged,
 			"Prompts.ListChanged should be %t", expected)
+	}
+}
+
+// assertInitializeResponse performs comprehensive validation of the initialize response
+func assertInitializeResponse(t *testing.T, session *mcp.ClientSession, stateless bool) {
+	t.Helper()
+	
+	initResult := session.InitializeResult()
+	require.NotNil(t, initResult, "should have initialize result")
+	
+	// Verify server info exists
+	require.NotNil(t, initResult.ServerInfo, "should have server info")
+	assert.NotEmpty(t, initResult.ServerInfo.Name, "server name should not be empty")
+	assert.NotEmpty(t, initResult.ServerInfo.Version, "server version should not be empty")
+	
+	// Verify protocol version exists
+	assert.NotEmpty(t, initResult.ProtocolVersion, "protocol version should not be empty")
+	
+	// Verify capabilities
+	require.NotNil(t, initResult.Capabilities, "should have capabilities")
+	
+	// In stateless mode: ListChanged should be false (no notifications)
+	// In stateful mode: ListChanged should be true (notifications enabled)
+	
+	// Tools capability
+	require.NotNil(t, initResult.Capabilities.Tools, "should have tools capability")
+	if stateless {
+		assert.False(t, initResult.Capabilities.Tools.ListChanged, "stateless mode should have Tools.ListChanged=false")
+	} else {
+		assert.True(t, initResult.Capabilities.Tools.ListChanged, "stateful mode should have Tools.ListChanged=true")
+	}
+	
+	// Prompts capability
+	require.NotNil(t, initResult.Capabilities.Prompts, "should have prompts capability")
+	if stateless {
+		assert.False(t, initResult.Capabilities.Prompts.ListChanged, "stateless mode should have Prompts.ListChanged=false")
+	} else {
+		assert.True(t, initResult.Capabilities.Prompts.ListChanged, "stateful mode should have Prompts.ListChanged=true")
 	}
 }
