@@ -38,7 +38,10 @@ tasks:
       # The idiomatic way to disable test caching explicitly is to use -count=1
       - go test github.com/codeready-toolchain/argocd-mcp-server/test/e2e/... -count=1 -v -failfast
 
-  # Continuous Deployment
   build-image:
     cmds:
-      - podman build --platform linux/amd64 --no-cache -t argocd-mcp-server:latest . -f Containerfile
+      - podman build --no-cache -t argocd-mcp-server:latest . -f Containerfile
+  
+  build-image-linux-amd64:
+    cmds:
+      - podman build --platform linux/amd64 --no-cache -t argocd-mcp-server:amd64 . -f Containerfile

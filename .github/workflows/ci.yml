@@ -29,7 +29,6 @@ jobs:
       run: |
         task test
 
-    
     - name: Install Podman
       uses: redhat-actions/podman-install@main
 
@@ -44,6 +43,23 @@ jobs:
         export PATH="$GOPATH/bin:$PATH"
         task test-e2e
   
+  build-image:
+    # verifying the image can be built (real build and push is done in the `cd` workflow)
+    name: Build Image
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v6
+
+    - name: Build image
+      id: build-image
+      uses: redhat-actions/buildah-build@v2
+      with:
+        image: codeready-toolchain/argocd-mcp-server
+        tags: latest # we won't push the image to a registry in this workflow, so we're good with just the `latest` tag
+        containerfiles: Containerfile
+        platforms: linux/amd64
+      
   lint:
     name: Lint
     runs-on: ubuntu-24.04

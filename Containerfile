@@ -2,12 +2,14 @@
 # Builder image
 # See https://hub.docker.com/_/golang/
 ################################################################################################
-FROM golang:1.24 as builder
-
-ARG OS=linux
-ARG ARCH=amd64
+FROM --platform=$BUILDPLATFORM golang:1.24 AS builder
 
 WORKDIR /usr/src/app
+
+ARG TARGETOS
+ARG TARGETARCH
+
+RUN echo "Building the 'argocd-mcp-server' binary for $TARGETOS/$TARGETARCH"
 
 # pre-copy/cache parent go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
@@ -15,13 +17,13 @@ RUN go mod download && go mod verify
 
 COPY . .
 
-RUN go build -o /usr/src/app/argocd-mcp-server main.go
+RUN GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /usr/src/app/argocd-mcp-server main.go
 RUN ls -la /usr/src/app/argocd-mcp-server
 
 ################################################################################################
-# image to be run by the GitHub Action job
+# image to be deployed to the target platform
 ################################################################################################
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as argocd-mcp-server
+FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi10/ubi-micro:latest AS argocd-mcp-server
 
 # Copy the generated binary into the $PATH so it can be invoked
 COPY --from=builder /usr/src/app/argocd-mcp-server /usr/local/bin/
