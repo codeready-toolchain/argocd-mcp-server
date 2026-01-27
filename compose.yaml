@@ -25,7 +25,7 @@ services:
       - ARGOCD_TOKEN=secure-token
       - ARGOCD_MCP_SERVER_INSECURE=true
       - ARGOCD_MCP_SERVER_DEBUG=true
-      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0 # here we need to bind to 0.0.0.0 to be able to connect to the server from the host machine
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   argocd-mcp-server-unreachable:
     image: argocd-mcp-server
@@ -36,7 +36,7 @@ services:
       - ARGOCD_TOKEN=secure-token
       - ARGOCD_MCP_SERVER_INSECURE=true
       - ARGOCD_MCP_SERVER_DEBUG=true
-      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0 # here we need to bind to 0.0.0.0 to be able to connect to the server from the host machine
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   argocd-mcp-server-stateless-replica1:
     image: argocd-mcp-server
