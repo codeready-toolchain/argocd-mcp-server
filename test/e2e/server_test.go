@@ -271,67 +271,51 @@ func TestStatefulServer(t *testing.T) {
 
 // TestStateless verifies that multiple stateless server instances work correctly
 // with load balancing across replicas. This comprehensive test validates:
-// - Initialize response and capabilities
-// - Session reuse
-// - Tools functionality in stateless mode
-// - No ListChanged notifications
+// - Initialize response and capabilities with no ListChanged notifications
+// - Session reuse across multiple requests (list tools and call tools)
+// - Tools functionality with content validation
 func TestStateless(t *testing.T) {
 	ctx := context.Background()
 	serverURL := "http://localhost:50090/mcp"
 
-	t.Run("initialize response validates stateless mode", func(t *testing.T) {
-		session, err := newClientSession(ctx, serverURL, "e2e-test-init-validation")
-		require.NoError(t, err)
-		defer session.Close()
+	// Initialize a single session for the entire test
+	session, err := newClientSession(ctx, serverURL, "e2e-test-stateless")
+	require.NoError(t, err)
+	defer session.Close()
 
-		// Comprehensive validation of initialize response for stateless mode
-		assertInitializeResponse(t, session, true)
+	// Step 1: Validate initialize response for stateless mode
+	assertInitializeResponse(t, session, true)
 
-		// Verify ListChanged is false (no notifications)
-		assertListChanged(t, session, false)
+	// Step 2: Verify ListChanged is false (no notifications available in stateless mode)
+	assertListChanged(t, session, false)
+
+	// Step 3: Verify session can be reused by listing tools multiple times
+	for i := 0; i < 5; i++ {
+		tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
+		require.NoError(t, err, "should list tools on request %d", i)
+		assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
+	}
+
+	// Step 4: Verify tools work correctly with content validation
+	result, err := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "unhealthyApplications",
 	})
+	require.NoError(t, err)
+	require.False(t, result.IsError, "tool call should succeed")
+	assert.NotEmpty(t, result.Content, "tool should return content")
 
-	t.Run("single session can be reused", func(t *testing.T) {
-		// In stateless mode, you CAN reuse the same session
-		// Stateless means no server-side state, not "no sessions"
-		session, err := newClientSession(ctx, serverURL, "e2e-test-reused-session")
-		require.NoError(t, err)
-		defer session.Close()
+	// Verify the content is correct
+	expectedContent := map[string]any{
+		"degraded":    []any{"a-degraded-application", "another-degraded-application"},
+		"progressing": []any{"a-progressing-application", "another-progressing-application"},
+		"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
+	}
+	expectedContentText, err := json.Marshal(expectedContent)
+	require.NoError(t, err)
 
-		// Make multiple requests on the same session
-		for i := 0; i < 5; i++ {
-			tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
-			require.NoError(t, err, "should list tools on request %d", i)
-			assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
-		}
-	})
-
-	t.Run("tools work correctly with content validation", func(t *testing.T) {
-		session, err := newClientSession(ctx, serverURL, "e2e-test-tool-check")
-		require.NoError(t, err)
-		defer session.Close()
-
-		// Call a tool to verify it works in stateless mode
-		result, err := session.CallTool(ctx, &mcp.CallToolParams{
-			Name: "unhealthyApplications",
-		})
-		require.NoError(t, err)
-		require.False(t, result.IsError, "tool call should succeed")
-		assert.NotEmpty(t, result.Content, "tool should return content")
-
-		// Verify the content is correct
-		expectedContent := map[string]any{
-			"degraded":    []any{"a-degraded-application", "another-degraded-application"},
-			"progressing": []any{"a-progressing-application", "another-progressing-application"},
-			"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
-		}
-		expectedContentText, err := json.Marshal(expectedContent)
-		require.NoError(t, err)
-
-		resultContent, ok := result.Content[0].(*mcp.TextContent)
-		require.True(t, ok)
-		assert.JSONEq(t, string(expectedContentText), resultContent.Text)
-	})
+	resultContent, ok := result.Content[0].(*mcp.TextContent)
+	require.True(t, ok)
+	assert.JSONEq(t, string(expectedContentText), resultContent.Text)
 }
 
 func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (int64, int64) { //nolint:unparam
