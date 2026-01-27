@@ -39,14 +39,14 @@ func TestStatefulServer(t *testing.T) {
 			name: "stdio",
 			init: newStdioSession(true, "http://localhost:50084", "secure-token", true),
 		},
-	{
-		name: "http",
-		init: func(t *testing.T) *mcp.ClientSession {
-			session, err := newClientSession(context.Background(), "http://localhost:50081/mcp", "e2e-test-client")
-			require.NoError(t, err)
-			return session
+		{
+			name: "http",
+			init: func(t *testing.T) *mcp.ClientSession {
+				session, err := newClientSession(context.Background(), "http://localhost:50081/mcp", "e2e-test-client")
+				require.NoError(t, err)
+				return session
+			},
 		},
-	},
 	}
 
 	// Test stdio and http transports with a valid Argo CD client (stateful mode)
@@ -238,14 +238,14 @@ func TestStatefulServer(t *testing.T) {
 			name: "stdio-unreachable",
 			init: newStdioSession(true, "http://localhost:50085", "another-token", true), // invalid URL and token for the Argo CD server
 		},
-	{
-		name: "http-unreachable",
-		init: func(t *testing.T) *mcp.ClientSession {
-			session, err := newClientSession(context.Background(), "http://localhost:50082/mcp", "e2e-test-client")
-			require.NoError(t, err)
-			return session
-		}, // invalid URL and token for the Argo CD server
-	},
+		{
+			name: "http-unreachable",
+			init: func(t *testing.T) *mcp.ClientSession {
+				session, err := newClientSession(context.Background(), "http://localhost:50082/mcp", "e2e-test-client")
+				require.NoError(t, err)
+				return session
+			}, // invalid URL and token for the Argo CD server
+		},
 	}
 
 	// test stdio and http transports with an invalid Argo CD client
