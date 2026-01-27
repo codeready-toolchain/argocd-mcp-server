@@ -13,7 +13,7 @@ var (
 			Name: "mcp_calls_total",
 			Help: "Total number of MCP calls",
 		},
-		[]string{"method", "name", "success"},
+		[]string{"server", "method", "name", "success"},
 	)
 
 	// MCPCallDuration measures the duration of MCP calls by method, name (for `tools/call`) and success
@@ -23,6 +23,6 @@ var (
 			Help:    "Duration of MCP calls in seconds",
 			Buckets: prometheus.DefBuckets,
 		},
-		[]string{"method", "name", "success"},
+		[]string{"server", "method", "name", "success"},
 	)
 )
