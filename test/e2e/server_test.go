@@ -39,14 +39,15 @@ func TestStatefulServer(t *testing.T) {
 			name: "stdio",
 			init: newStdioSession(true, "http://localhost:50084", "secure-token", true),
 		},
-		{
-			name: "http",
-			init: func(t *testing.T) *mcp.ClientSession {
-				session, err := newClientSession(context.Background(), "http://localhost:50081/mcp", "e2e-test-client")
-				require.NoError(t, err)
-				return session
-			},
+	{
+		name: "http",
+		init: func(t *testing.T) *mcp.ClientSession {
+			ctx := context.Background()
+			session, err := newHTTPSession(ctx, "http://localhost:50081/mcp", "e2e-test-client")
+			require.NoError(t, err)
+			return session
 		},
+	},
 	}
 
 	// Test stdio and http transports with a valid Argo CD client (stateful mode)
@@ -238,14 +239,15 @@ func TestStatefulServer(t *testing.T) {
 			name: "stdio-unreachable",
 			init: newStdioSession(true, "http://localhost:50085", "another-token", true), // invalid URL and token for the Argo CD server
 		},
-		{
-			name: "http-unreachable",
-			init: func(t *testing.T) *mcp.ClientSession {
-				session, err := newClientSession(context.Background(), "http://localhost:50082/mcp", "e2e-test-client")
-				require.NoError(t, err)
-				return session
-			}, // invalid URL and token for the Argo CD server
-		},
+	{
+		name: "http-unreachable",
+		init: func(t *testing.T) *mcp.ClientSession {
+			ctx := context.Background()
+			session, err := newHTTPSession(ctx, "http://localhost:50082/mcp", "e2e-test-client")
+			require.NoError(t, err)
+			return session
+		}, // invalid URL and token for the Argo CD server
+	},
 	}
 
 	// test stdio and http transports with an invalid Argo CD client
@@ -279,7 +281,7 @@ func TestStateless(t *testing.T) {
 	serverURL := "http://localhost:50090/mcp"
 
 	// Initialize a single session for the entire test
-	session, err := newClientSession(ctx, serverURL, "e2e-test-stateless")
+	session, err := newHTTPSession(ctx, serverURL, "e2e-test-stateless")
 	require.NoError(t, err)
 	defer session.Close()
 
@@ -366,7 +368,7 @@ func newStdioServerCmd(ctx context.Context, mcpServerDebug bool, argocdURL strin
 	)
 }
 
-func newClientSession(ctx context.Context, endpoint, clientName string) (*mcp.ClientSession, error) {
+func newHTTPSession(ctx context.Context, endpoint, clientName string) (*mcp.ClientSession, error) {
 	client := mcp.NewClient(&mcp.Implementation{
 		Name:    clientName,
 		Version: "1.0.0",
