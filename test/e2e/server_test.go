@@ -291,16 +291,16 @@ func TestStateless(t *testing.T) {
 
 	// Step 3: Verify session can be reused by listing tools multiple times
 	for i := 0; i < 5; i++ {
-		tools, err := session.ListTools(ctx, &mcp.ListToolsParams{})
-		require.NoError(t, err, "should list tools on request %d", i)
+		tools, listErr := session.ListTools(ctx, &mcp.ListToolsParams{})
+		require.NoError(t, listErr, "should list tools on request %d", i)
 		assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
 	}
 
 	// Step 4: Verify tools work correctly with content validation
-	result, err := session.CallTool(ctx, &mcp.CallToolParams{
+	result, callErr := session.CallTool(ctx, &mcp.CallToolParams{
 		Name: "unhealthyApplications",
 	})
-	require.NoError(t, err)
+	require.NoError(t, callErr)
 	require.False(t, result.IsError, "tool call should succeed")
 	assert.NotEmpty(t, result.Content, "tool should return content")
 
@@ -310,8 +310,8 @@ func TestStateless(t *testing.T) {
 		"progressing": []any{"a-progressing-application", "another-progressing-application"},
 		"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
 	}
-	expectedContentText, err := json.Marshal(expectedContent)
-	require.NoError(t, err)
+	expectedContentText, marshalErr := json.Marshal(expectedContent)
+	require.NoError(t, marshalErr)
 
 	resultContent, ok := result.Content[0].(*mcp.TextContent)
 	require.True(t, ok)
