@@ -24,7 +24,7 @@ tasks:
   
   podman-compose-up:
     cmds:
-      - podman-compose up -d
+      - podman-compose up -d --build
 
   podman-compose-down:
     cmds:

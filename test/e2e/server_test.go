@@ -63,7 +63,6 @@ func TestStatefulServer(t *testing.T) {
 				var mcpCallsDurationSecondsInfBucketBefore int64
 				if td.name == "http" {
 					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
 						"method":  "tools/call",
 						"name":    "unhealthyApplications",
 						"success": "true",
@@ -100,7 +99,6 @@ func TestStatefulServer(t *testing.T) {
 				if td.name == "http" {
 					// get the metrics after the call
 					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
 						"method":  "tools/call",
 						"name":    "unhealthyApplications",
 						"success": "true",
@@ -116,7 +114,6 @@ func TestStatefulServer(t *testing.T) {
 				var mcpCallsDurationSecondsInfBucketBefore int64
 				if td.name == "http" {
 					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
 						"method":  "tools/call",
 						"name":    "unhealthyApplicationResources",
 						"success": "true",
@@ -184,7 +181,6 @@ func TestStatefulServer(t *testing.T) {
 				if td.name == "http" {
 					// get the metrics after the call
 					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
 						"method":  "tools/call",
 						"name":    "unhealthyApplicationResources",
 						"success": "true",
@@ -199,7 +195,6 @@ func TestStatefulServer(t *testing.T) {
 				var mcpCallsDurationSecondsInfBucketBefore int64
 				if td.name == "http" {
 					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
 						"method":  "tools/call",
 						"name":    "unhealthyApplicationResources",
 						"success": "false",
@@ -220,7 +215,6 @@ func TestStatefulServer(t *testing.T) {
 				if td.name == "http" {
 					// get the metrics after the call
 					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
 						"method":  "tools/call",
 						"name":    "unhealthyApplicationResources",
 						"success": "false",
