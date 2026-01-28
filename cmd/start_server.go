@@ -57,7 +57,7 @@ var startServerCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, _ []string) error {
 		lvl := new(slog.LevelVar)
 		lvl.Set(slog.LevelInfo)
-		logger := slog.New(slog.NewTextHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
+		logger := slog.New(slog.NewJSONHandler(cmd.ErrOrStderr(), &slog.HandlerOptions{
 			Level: lvl,
 		}))
 		logger.Info("starting the Argo CD MCP server", "transport", transport, "listen", listen, "argocd-url", argocdURL, "insecure", argocdInsecure, "debug", debug, "stateless", stateless)
