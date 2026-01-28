@@ -23,7 +23,7 @@ RUN ls -la /usr/src/app/argocd-mcp-server
 ################################################################################################
 # image to be deployed to the target platform
 ################################################################################################
-FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi10/ubi-micro:latest AS argocd-mcp-server
+FROM --platform=$TARGETPLATFORM registry.access.redhat.com/ubi9/ubi-minimal:latest AS argocd-mcp-server
 
 # Copy the generated binary into the $PATH so it can be invoked
 COPY --from=builder /usr/src/app/argocd-mcp-server /usr/local/bin/
