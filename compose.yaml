@@ -40,3 +40,35 @@ services:
       - ARGOCD_MCP_SERVER_DEBUG=true
       - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0 # here we need to bind to 0.0.0.0 to be able to connect to the server from the host machine
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
+  argocd-mcp-server-stateless-replica1:
+    # instance of the Argo CD MCP server with a valid URL for the Argo CD server and stateless mode enabled
+    image: argocd-mcp-server
+    environment:
+      - ARGOCD_URL=http://argocd-server-mock:50084
+      - ARGOCD_TOKEN=secure-token
+      - ARGOCD_MCP_SERVER_INSECURE=true
+      - ARGOCD_MCP_SERVER_DEBUG=true
+      - ARGOCD_MCP_SERVER_STATELESS=true
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
+  argocd-mcp-server-stateless-replica2:
+    # instance of the Argo CD MCP server with a valid URL for the Argo CD server and stateless mode enabled
+    image: argocd-mcp-server
+    environment:
+      - ARGOCD_URL=http://argocd-server-mock:50084
+      - ARGOCD_TOKEN=secure-token
+      - ARGOCD_MCP_SERVER_INSECURE=true
+      - ARGOCD_MCP_SERVER_DEBUG=true
+      - ARGOCD_MCP_SERVER_STATELESS=true
+      - ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0
+      - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
+  load-balancer:
+    # load balancer to balance the traffic between the Argo CD MCP server instances
+    image: nginx:alpine
+    ports:
+      - "50090:80"
+    volumes:
+      - ./test/e2e/nginx.conf:/etc/nginx/nginx.conf:ro,z
+    depends_on:
+      - argocd-mcp-server-stateless-replica1
+      - argocd-mcp-server-stateless-replica2

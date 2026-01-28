@@ -23,7 +23,13 @@ import (
 // Note: make sure you ran `task install` before running this test
 // ------------------------------------------------------------------------------------------------
 
-func TestServer(t *testing.T) {
+// TestServer verifies basic MCP functionality with both stdio and http transports.
+// Both transports run in stateful mode (ListChanged enabled) and test:
+// - Tool calls (unhealthyApplications, unhealthyApplicationResources)
+// - Error handling (argocd-error, unreachable scenarios)
+// - Metrics collection (for http transport)
+// - Session reuse across multiple tool calls
+func TestStatefulServer(t *testing.T) {
 
 	testdata := []struct {
 		name string
@@ -35,11 +41,16 @@ func TestServer(t *testing.T) {
 		},
 		{
 			name: "http",
-			init: newHTTPSession("http://localhost:50081/mcp"),
+			init: func(t *testing.T) *mcp.ClientSession {
+				ctx := context.Background()
+				session, err := newHTTPSession(ctx, "http://localhost:50081/mcp", "e2e-test-client")
+				require.NoError(t, err)
+				return session
+			},
 		},
 	}
 
-	// test stdio and http transports with a valid Argo CD client
+	// Test stdio and http transports with a valid Argo CD client (stateful mode)
 	for _, td := range testdata {
 		t.Run(td.name, func(t *testing.T) {
 			// given
@@ -212,6 +223,11 @@ func TestServer(t *testing.T) {
 					assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
 				}
 			})
+
+			t.Run("verify/capabilities/listChanged", func(t *testing.T) {
+				// Both stdio and http transports use stateful mode by default
+				assertListChanged(t, session, true)
+			})
 		})
 	}
 
@@ -225,7 +241,12 @@ func TestServer(t *testing.T) {
 		},
 		{
 			name: "http-unreachable",
-			init: newHTTPSession("http://localhost:50082/mcp"), // invalid URL and token for the Argo CD server
+			init: func(t *testing.T) *mcp.ClientSession {
+				ctx := context.Background()
+				session, err := newHTTPSession(ctx, "http://localhost:50082/mcp", "e2e-test-client")
+				require.NoError(t, err)
+				return session
+			}, // invalid URL and token for the Argo CD server
 		},
 	}
 
@@ -248,6 +269,55 @@ func TestServer(t *testing.T) {
 		})
 
 	}
+}
+
+// TestStateless verifies that multiple stateless server instances work correctly
+// with load balancing across replicas. This comprehensive test validates:
+// - Initialize response and capabilities with no ListChanged notifications
+// - Session reuse across multiple requests (list tools and call tools)
+// - Tools functionality with content validation
+func TestStatelessServer(t *testing.T) {
+	ctx := context.Background()
+	serverURL := "http://localhost:50090/mcp"
+
+	// Initialize a single session for the entire test
+	session, err := newHTTPSession(ctx, serverURL, "e2e-test-stateless")
+	require.NoError(t, err)
+	defer session.Close()
+
+	// Step 1: Validate initialize response for stateless mode
+	assertInitializeResponse(t, session, true)
+
+	// Step 2: Verify ListChanged is false (no notifications available in stateless mode)
+	assertListChanged(t, session, false)
+
+	// Step 3: Verify session can be reused by listing tools multiple times
+	for i := 0; i < 5; i++ {
+		tools, listErr := session.ListTools(ctx, &mcp.ListToolsParams{})
+		require.NoError(t, listErr, "should list tools on request %d", i)
+		assert.NotEmpty(t, tools.Tools, "should have tools on request %d", i)
+	}
+
+	// Step 4: Verify tools work correctly with content validation
+	result, callErr := session.CallTool(ctx, &mcp.CallToolParams{
+		Name: "unhealthyApplications",
+	})
+	require.NoError(t, callErr)
+	require.False(t, result.IsError, "tool call should succeed")
+	assert.NotEmpty(t, result.Content, "tool should return content")
+
+	// Verify the content is correct
+	expectedContent := map[string]any{
+		"degraded":    []any{"a-degraded-application", "another-degraded-application"},
+		"progressing": []any{"a-progressing-application", "another-progressing-application"},
+		"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
+	}
+	expectedContentText, marshalErr := json.Marshal(expectedContent)
+	require.NoError(t, marshalErr)
+
+	resultContent, ok := result.Content[0].(*mcp.TextContent)
+	require.True(t, ok)
+	assert.JSONEq(t, string(expectedContentText), resultContent.Text)
 }
 
 func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (int64, int64) { //nolint:unparam
@@ -287,19 +357,6 @@ func newStdioSession(mcpServerDebug bool, argocdURL string, argocdToken string, 
 	}
 }
 
-func newHTTPSession(mcpServerURL string) func(*testing.T) *mcp.ClientSession {
-	return func(t *testing.T) *mcp.ClientSession {
-		ctx := context.Background()
-		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
-		session, err := cl.Connect(ctx, &mcp.StreamableClientTransport{
-			MaxRetries: 5,
-			Endpoint:   mcpServerURL,
-		}, nil)
-		require.NoError(t, err)
-		return session
-	}
-}
-
 func newStdioServerCmd(ctx context.Context, mcpServerDebug bool, argocdURL string, argocdToken string, argocdInsecureURL bool) *exec.Cmd {
 	return exec.CommandContext(ctx, //nolint:gosec
 		"argocd-mcp-server",
@@ -309,4 +366,69 @@ func newStdioServerCmd(ctx context.Context, mcpServerDebug bool, argocdURL strin
 		"--argocd-token", argocdToken,
 		"--insecure", strconv.FormatBool(argocdInsecureURL),
 	)
+}
+
+func newHTTPSession(ctx context.Context, endpoint, clientName string) (*mcp.ClientSession, error) {
+	client := mcp.NewClient(&mcp.Implementation{
+		Name:    clientName,
+		Version: "1.0.0",
+	}, nil)
+	return client.Connect(ctx, &mcp.StreamableClientTransport{
+		MaxRetries: 5,
+		Endpoint:   endpoint,
+	}, nil)
+}
+
+func assertListChanged(t *testing.T, session *mcp.ClientSession, expected bool) {
+	t.Helper()
+	initResult := session.InitializeResult()
+	require.NotNil(t, initResult, "should have initialize result")
+	require.NotNil(t, initResult.Capabilities, "should have capabilities")
+
+	if initResult.Capabilities.Tools != nil {
+		assert.Equal(t, expected, initResult.Capabilities.Tools.ListChanged,
+			"Tools.ListChanged should be %t", expected)
+	}
+	if initResult.Capabilities.Prompts != nil {
+		assert.Equal(t, expected, initResult.Capabilities.Prompts.ListChanged,
+			"Prompts.ListChanged should be %t", expected)
+	}
+}
+
+// assertInitializeResponse performs comprehensive validation of the initialize response
+func assertInitializeResponse(t *testing.T, session *mcp.ClientSession, stateless bool) {
+	t.Helper()
+
+	initResult := session.InitializeResult()
+	require.NotNil(t, initResult, "should have initialize result")
+
+	// Verify server info exists
+	require.NotNil(t, initResult.ServerInfo, "should have server info")
+	assert.NotEmpty(t, initResult.ServerInfo.Name, "server name should not be empty")
+	assert.NotEmpty(t, initResult.ServerInfo.Version, "server version should not be empty")
+
+	// Verify protocol version exists
+	assert.NotEmpty(t, initResult.ProtocolVersion, "protocol version should not be empty")
+
+	// Verify capabilities
+	require.NotNil(t, initResult.Capabilities, "should have capabilities")
+
+	// In stateless mode: ListChanged should be false (no notifications)
+	// In stateful mode: ListChanged should be true (notifications enabled)
+
+	// Tools capability
+	require.NotNil(t, initResult.Capabilities.Tools, "should have tools capability")
+	if stateless {
+		assert.False(t, initResult.Capabilities.Tools.ListChanged, "stateless mode should have Tools.ListChanged=false")
+	} else {
+		assert.True(t, initResult.Capabilities.Tools.ListChanged, "stateful mode should have Tools.ListChanged=true")
+	}
+
+	// Prompts capability
+	require.NotNil(t, initResult.Capabilities.Prompts, "should have prompts capability")
+	if stateless {
+		assert.False(t, initResult.Capabilities.Prompts.ListChanged, "stateless mode should have Prompts.ListChanged=false")
+	} else {
+		assert.True(t, initResult.Capabilities.Prompts.ListChanged, "stateful mode should have Prompts.ListChanged=true")
+	}
 }
