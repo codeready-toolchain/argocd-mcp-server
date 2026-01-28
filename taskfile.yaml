@@ -24,7 +24,8 @@ tasks:
   
   podman-compose-up:
     cmds:
-      - podman-compose up -d --build
+      # --build is used to build the images if they are not already built
+      - podman-compose up -d --build 
 
   podman-compose-down:
     cmds:

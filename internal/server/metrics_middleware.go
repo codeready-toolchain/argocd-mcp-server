@@ -10,6 +10,8 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const serverName = "argocd-mcp-server"
+
 func NewMetricsMiddleware(logger *slog.Logger) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
@@ -30,8 +32,8 @@ func NewMetricsMiddleware(logger *slog.Logger) mcp.Middleware {
 				success = success && !r.IsError
 			}
 			// increment/update the metrics
-			metrics.MCPCallsTotal.WithLabelValues(method, tool, strconv.FormatBool(success)).Inc()
-			metrics.MCPCallDuration.WithLabelValues(method, tool, strconv.FormatBool(success)).Observe(float64(duration.Seconds()))
+			metrics.MCPCallsTotal.WithLabelValues(serverName, method, tool, strconv.FormatBool(success)).Inc()
+			metrics.MCPCallDuration.WithLabelValues(serverName, method, tool, strconv.FormatBool(success)).Observe(float64(duration.Seconds()))
 			return result, err
 		}
 	}
