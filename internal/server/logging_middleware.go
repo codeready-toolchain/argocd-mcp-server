@@ -11,13 +11,12 @@ import (
 func NewLoggingMiddleware(logger *slog.Logger) mcp.Middleware {
 	return func(next mcp.MethodHandler) mcp.MethodHandler {
 		return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
-			if ctr, ok := req.(*mcp.CallToolRequest); ok { // Track tool calls
+			if req, ok := req.(*mcp.CallToolRequest); ok { // Track tool calls
 				logger.Info("MCP method started",
 					"method", method,
 					"session_id", req.GetSession().ID(),
-					"has_params", req.GetParams() != nil,
-					"name", ctr.Params.Name,
-					"args", ctr.Params.Arguments)
+					"name", req.Params.Name,
+					"has_args", len(req.Params.Arguments) > 0)
 			} else {
 				logger.Info("MCP method started",
 					"method", method,
