@@ -20,11 +20,12 @@ type Client struct {
 }
 
 func NewClient(host string, token string, insecure bool) *Client {
-	cl := http.DefaultClient
+	// When Transport is nil, the client uses http.DefaultTransport and does not mutate global state.
+	cl := &http.Client{}
 	if insecure {
 		cl.Transport = &http.Transport{
 			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: insecure, //nolint:gosec
+				InsecureSkipVerify: true, //nolint:gosec
 			},
 		}
 	}
