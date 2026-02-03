@@ -13,7 +13,7 @@ import (
 )
 
 var UnhealthyApplicationsTool = &mcp.Tool{
-	Name:         "unhealthyApplications",
+	Name:         "argocd_list_unhealthy_applications",
 	Description:  "list the unhealthy ('degraded' and 'progressing') Applications in Argo CD",
 	InputSchema:  UnhealthyApplicationsInputSchema,
 	OutputSchema: UnhealthyApplicationsOutputSchema,
@@ -84,7 +84,7 @@ func listUnhealthyApplications(ctx context.Context, logger *slog.Logger, cl *Cli
 		if err != nil {
 			logger.Error("failed to convert unhealthy resources to text", "error", err.Error())
 		}
-		logger.DebugContext(ctx, "returned 'tools/call' response", "tool", "unhealthyApplications", "result", string(unhealthyAppsStr))
+		logger.DebugContext(ctx, "returned 'tools/call' response", "tool", "argocd_list_unhealthy_applications", "result", string(unhealthyAppsStr))
 	}
 	return unhealthyApps, nil
 }
