@@ -33,7 +33,6 @@ tasks:
   
   test-e2e:
     deps:
-      - build
       - podman-compose-up
     cmds:
       # The idiomatic way to disable test caching explicitly is to use -count=1
