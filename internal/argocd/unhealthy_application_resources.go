@@ -57,7 +57,7 @@ func UnhealthyApplicationResourcesPromptHandle(logger *slog.Logger, cl *Client) 
 }
 
 var UnhealthyApplicationResourcesTool = &mcp.Tool{
-	Name:        "unhealthyApplicationResources",
+	Name:        "argocd_list_unhealthy_application_resources",
 	Description: "list unhealthy resources of a given Argo CD Application",
 	InputSchema: &jsonschema.Schema{
 		Type: "object",
@@ -108,7 +108,7 @@ func listUnhealthyApplicationResources(ctx context.Context, logger *slog.Logger,
 		if err != nil {
 			logger.Error("failed to convert unhealthy resources to text", "error", err.Error())
 		}
-		logger.DebugContext(ctx, "returned 'tools/call' response", "tool", "unhealthyApplicationResources", "app", name, "result", string(unhealthyResourcesStr))
+		logger.DebugContext(ctx, "returned 'tools/call' response", "tool", "argocd_list_unhealthy_application_resources", "app", name, "result", string(unhealthyResourcesStr))
 	}
 	return UnhealthyResources{
 		Resources: unhealthyResources,
