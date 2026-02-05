@@ -1,6 +1,6 @@
 module github.com/codeready-toolchain/argocd-mcp-server
 
-go 1.24.12
+go 1.24.13
 
 require (
 	github.com/argoproj/argo-cd/v3 v3.1.11
