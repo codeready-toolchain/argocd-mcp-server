@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/codeready-toolchain/argocd-mcp-server/internal/argocd"
+	"github.com/codeready-toolchain/mcp-common/pkg/middleware"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -31,8 +32,8 @@ func New(logger *slog.Logger, cl *argocd.Client, stateless bool) *mcp.Server {
 		},
 	)
 
-	s.AddReceivingMiddleware(NewMetricsMiddleware(logger))
-	s.AddReceivingMiddleware(NewLoggingMiddleware(logger))
+	s.AddReceivingMiddleware(middleware.NewMetricsMiddleware("argocd-mcp-server", logger))
+	s.AddReceivingMiddleware(middleware.NewLoggingMiddleware(logger))
 	s.AddPrompt(argocd.UnhealthyResourcesPrompt, argocd.UnhealthyApplicationResourcesPromptHandle(logger, cl))
 	mcp.AddTool(s, argocd.UnhealthyApplicationsTool, argocd.UnhealthyApplicationsToolHandle(logger, cl))
 	mcp.AddTool(s, argocd.UnhealthyApplicationResourcesTool, argocd.UnhealthyApplicationResourcesToolHandle(logger, cl))
