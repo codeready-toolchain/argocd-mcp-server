@@ -14,7 +14,7 @@ func New(logger *slog.Logger, cl *argocd.Client, stateless bool) *mcp.Server {
 	// Configure server capabilities based on stateless mode
 	// When stateless is true, disable ListChanged notifications for tools and prompts
 	// This prevents the server from attempting to send notifications that may not
-	// reach the client in multi-replica deployments
+	// reach the client in multi-replica deployments.
 	s := mcp.NewServer(
 		&mcp.Implementation{
 			Name:    "argocd-mcp-server",
