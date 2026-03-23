@@ -5,6 +5,7 @@ go 1.24.13
 require (
 	github.com/argoproj/argo-cd/v3 v3.1.11
 	github.com/argoproj/gitops-engine v0.7.1-0.20250905160054-e48120133eec
+	github.com/codeready-toolchain/mcp-common v0.0.0-20260311065550-14ceedd27660
 	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260112152755-eb77a8e22ccb
 	github.com/google/jsonschema-go v0.3.0
 	github.com/h2non/gock v1.2.0
