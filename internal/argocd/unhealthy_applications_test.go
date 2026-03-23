@@ -8,6 +8,7 @@ import (
 
 	testresources "github.com/codeready-toolchain/argocd-mcp-server/test/resources"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -64,5 +65,17 @@ func TestListUnhealthyApplications(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.EqualError(t, err, "unexpected 500 response for GET http://argocd.example.com/api/v1/applications: mock error!")
+	})
+}
+
+func TestUnhealthyApplicationsSchemas(t *testing.T) {
+
+	t.Run("output schema", func(t *testing.T) {
+		// when
+		schema, err := jsonschema.For[UnhealthyApplicationsOutput](&jsonschema.ForOptions{})
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, UnhealthyApplicationsOutputSchema, schema)
 	})
 }

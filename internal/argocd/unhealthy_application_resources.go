@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log"
 	"log/slog"
+	"reflect"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
 	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 var UnhealthyResourcesPrompt = &mcp.Prompt{
@@ -56,26 +59,40 @@ func UnhealthyApplicationResourcesPromptHandle(logger *slog.Logger, cl *Client) 
 	}
 }
 
-var UnhealthyApplicationResourcesTool = &mcp.Tool{
-	Name:        "argocd_list_unhealthy_application_resources",
-	Description: "list unhealthy resources of a given Argo CD Application",
-	InputSchema: &jsonschema.Schema{
-		Type: "object",
-		Properties: map[string]*jsonschema.Schema{
-			"name": {
-				Type:        "string",
-				Description: "the name of the Argo CD Application to get details of",
-			},
-		},
-		Required: []string{"name"},
-	},
-	OutputSchema: UnhealthyApplicationResourcesOutputSchema,
-}
-
-var UnhealthyApplicationResourcesOutputSchema, _ = jsonschema.For[UnhealthyApplicationResourcesOutput](&jsonschema.ForOptions{})
+var UnhealthyApplicationResourcesTool *mcp.Tool
 
 type UnhealthyApplicationResourcesInput struct {
-	Name string `json:"name"`
+	Name string `json:"name" jsonschema:"the name of the Argo CD Application to get details of"`
+}
+
+var UnhealthyApplicationResourcesInputSchema *jsonschema.Schema
+var UnhealthyApplicationResourcesOutputSchema *jsonschema.Schema
+
+func init() {
+	var err error
+	// create the input schema
+	UnhealthyApplicationResourcesInputSchema, err = jsonschema.For[UnhealthyApplicationResourcesInput](&jsonschema.ForOptions{})
+	if err != nil {
+		log.Fatalf("failed to create UnhealthyApplicationResourcesInputSchema: %v", err.Error())
+	}
+	log.Println("UnhealthyApplicationResourcesInputSchema initialized")
+	// create the output schema
+	UnhealthyApplicationResourcesOutputSchema, err = jsonschema.For[UnhealthyApplicationResourcesOutput](&jsonschema.ForOptions{
+		TypeSchemas: map[reflect.Type]*jsonschema.Schema{
+			reflect.TypeFor[metav1.Time](): {
+				Type: "string", // see https://github.com/modelcontextprotocol/go-sdk/pull/470
+			},
+		},
+	})
+	if err != nil {
+		log.Fatalf("failed to create UnhealthyApplicationResourcesOutputSchema: %v", err.Error())
+	}
+	UnhealthyApplicationResourcesTool = &mcp.Tool{
+		Name:         "argocd_list_unhealthy_application_resources",
+		Description:  "list unhealthy resources of a given Argo CD Application",
+		InputSchema:  UnhealthyApplicationResourcesInputSchema,
+		OutputSchema: UnhealthyApplicationResourcesOutputSchema,
+	}
 }
 
 type UnhealthyApplicationResourcesOutput UnhealthyResources

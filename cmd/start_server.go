@@ -92,7 +92,8 @@ var startServerCmd = &cobra.Command{
 			mux.Handle("/mcp", mcp.NewStreamableHTTPHandler(func(*http.Request) *mcp.Server {
 				return srv
 			}, &mcp.StreamableHTTPOptions{
-				Stateless: stateless,
+				Stateless:                  stateless,
+				DisableLocalhostProtection: true,
 			}))
 
 			// Metrics endpoint

@@ -3,6 +3,7 @@ package argocd
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"log/slog"
 
 	"github.com/google/jsonschema-go/jsonschema"
@@ -12,21 +13,35 @@ import (
 	argocdhealth "github.com/argoproj/gitops-engine/pkg/health"
 )
 
-var UnhealthyApplicationsTool = &mcp.Tool{
-	Name:         "argocd_list_unhealthy_applications",
-	Description:  "list the unhealthy ('degraded' and 'progressing') Applications in Argo CD",
-	InputSchema:  UnhealthyApplicationsInputSchema,
-	OutputSchema: UnhealthyApplicationsOutputSchema,
-}
-
-type UnhealthyApplicationsInput struct {
-}
-
-var UnhealthyApplicationsInputSchema, _ = jsonschema.For[UnhealthyApplicationsInput](&jsonschema.ForOptions{})
-
+type UnhealthyApplicationsInput struct{}
 type UnhealthyApplicationsOutput UnhealthyApplications
 
+var UnhealthyApplicationsInputSchema, _ = jsonschema.For[UnhealthyApplicationsInput](&jsonschema.ForOptions{})
 var UnhealthyApplicationsOutputSchema, _ = jsonschema.For[UnhealthyApplicationsOutput](&jsonschema.ForOptions{})
+
+var UnhealthyApplicationsTool *mcp.Tool
+
+func init() {
+	var err error
+	// create the input schema
+	UnhealthyApplicationsInputSchema, err = jsonschema.For[UnhealthyApplicationsInput](&jsonschema.ForOptions{})
+	if err != nil {
+		log.Fatalf("failed to create UnhealthyApplicationsInputSchema: %v", err.Error())
+	}
+	log.Println("UnhealthyApplicationsInputSchema initialized")
+	// create the output schema
+	UnhealthyApplicationsOutputSchema, err = jsonschema.For[UnhealthyApplicationsOutput](&jsonschema.ForOptions{})
+	if err != nil {
+		log.Fatalf("failed to create UnhealthyApplicationsOutputSchema: %v", err.Error())
+	}
+	log.Println("UnhealthyApplicationsOutputSchema initialized")
+	UnhealthyApplicationsTool = &mcp.Tool{
+		Name:         "argocd_list_unhealthy_applications",
+		Description:  "list the unhealthy ('degraded' and 'progressing') Applications in Argo CD",
+		InputSchema:  UnhealthyApplicationsInputSchema,
+		OutputSchema: UnhealthyApplicationsOutputSchema,
+	}
+}
 
 func UnhealthyApplicationsToolHandle(logger *slog.Logger, cl *Client) mcp.ToolHandlerFor[UnhealthyApplicationsInput, UnhealthyApplicationsOutput] {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, _ UnhealthyApplicationsInput) (*mcp.CallToolResult, UnhealthyApplicationsOutput, error) {
