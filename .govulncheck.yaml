@@ -1,13 +1,49 @@
 ignored-vulnerabilities:
+  # MCP Go SDK Vulnerable to Improper Handling of Case Sensitivity in github.com/modelcontextprotocol/go-sdk
+  # Found in: github.com/modelcontextprotocol/go-sdk/mcp@v1.2.0
+  # Fixed in: github.com/modelcontextprotocol/go-sdk/mcp@v1.3.1
+  - id: GO-2026-4569
+    info: https://pkg.go.dev/vuln/GO-2026-4569
+    silence-until: 2026-04-17
+  # Incorrect parsing of IPv6 host literals in net/url
+  # Found in: net/url@go1.24.13
+  # Fixed in: net/url@go1.25.8
+  - id: GO-2026-4601
+    info: https://pkg.go.dev/vuln/GO-2026-4601
+    silence-until: 2026-04-17
+  # FileInfo can escape from a Root in os
+  # Found in: os@go1.24.13
+  # Fixed in: os@go1.25.8
+  - id: GO-2026-4602
+    info: https://pkg.go.dev/vuln/GO-2026-4602
+    silence-until: 2026-04-17
+  # URLs in meta content attribute actions are not escaped in html/template
+  # Found in: html/template@go1.24.13
+  # Fixed in: html/template@go1.25.8
+  - id: GO-2026-4603
+    info: https://pkg.go.dev/vuln/GO-2026-4603
+    silence-until: 2026-04-17
   # Kubernetes GitRepo Volume Inadvertent Local Repository Access in k8s.io/kubernetes
   # Found in: k8s.io/kubernetes/pkg/apis/flowcontrol/v1beta1@v1.33.6
   # Fixed in: N/A
   - id: GO-2025-3521
     info: https://pkg.go.dev/vuln/GO-2025-3521
-    silence-until: 2026-02-12
+    silence-until: 2026-04-17
   # Kubernetes kube-apiserver Vulnerable to Race Condition in k8s.io/kubernetes
   # Found in: k8s.io/kubernetes/pkg/apis/admissionregistration/v1@v1.33.6
   # Fixed in: N/A
   - id: GO-2025-3547
     info: https://pkg.go.dev/vuln/GO-2025-3547
-    silence-until: 2026-02-12
+    silence-until: 2026-04-17
+  # CIRCL has an incorrect calculation in secp384r1 CombinedMult in github.com/cloudflare/circl
+  # Found in: github.com/cloudflare/circl@v1.6.1
+  # Fixed in: github.com/cloudflare/circl@v1.6.3
+  - id: GO-2026-4550
+    info: https://pkg.go.dev/vuln/GO-2026-4550
+    silence-until: 2026-04-17
+  # Improper verification of data integrity values for .idx and .pack files in github.com/go-git/go-git
+  # Found in: github.com/go-git/go-git/v5@v5.14.0
+  # Fixed in: github.com/go-git/go-git/v5@v5.16.5
+  - id: GO-2026-4473
+    info: https://pkg.go.dev/vuln/GO-2026-4473
+    silence-until: 2026-04-17
