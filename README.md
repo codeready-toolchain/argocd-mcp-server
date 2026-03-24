@@ -17,7 +17,7 @@ Example:
 
 ## Building and Installing
 
-Requires [Go 1.24 (or higher)](https://go.dev/doc/install) and [Task](https://taskfile.dev/)
+Requires [Go 1.25 (or higher)](https://go.dev/doc/install) and [Task](https://taskfile.dev/)
 
 ### Testing and Linting
 

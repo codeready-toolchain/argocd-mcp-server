@@ -2,7 +2,7 @@
 # Builder image
 # See https://hub.docker.com/_/golang/
 ################################################################################################
-FROM --platform=$BUILDPLATFORM golang:1.24 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25 AS builder
 
 WORKDIR /usr/src/app
 

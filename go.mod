@@ -1,8 +1,8 @@
 module github.com/codeready-toolchain/argocd-mcp-server
 
-go 1.24.6
+go 1.25.0
 
-toolchain go1.24.13
+toolchain go1.25.8
 
 require (
 	github.com/argoproj/argo-cd/v3 v3.1.11
@@ -11,7 +11,7 @@ require (
 	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260112152755-eb77a8e22ccb
 	github.com/google/jsonschema-go v0.4.2
 	github.com/h2non/gock v1.2.0
-	github.com/modelcontextprotocol/go-sdk v1.4.0
+	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spf13/cobra v1.10.1
 	github.com/spf13/pflag v1.0.9
