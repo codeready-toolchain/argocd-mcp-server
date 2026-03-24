@@ -4,14 +4,17 @@ import (
 	"context"
 	"log/slog"
 	"os"
+	"reflect"
 	"testing"
 
 	testresources "github.com/codeready-toolchain/argocd-mcp-server/test/resources"
 
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/h2non/gock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
 func TestListUnhealthyApplicationResources(t *testing.T) {
@@ -90,5 +93,24 @@ func TestListUnhealthyApplicationResources(t *testing.T) {
 		// then
 		require.Error(t, err)
 		assert.EqualError(t, err, "unexpected 500 response for GET http://argocd.example.com/api/v1/applications?name=example: mock error!")
+	})
+}
+
+func TestUnhealthyApplicationResourcesSchemas(t *testing.T) {
+
+	t.Run("output schema", func(t *testing.T) {
+		// when
+		schema, err := jsonschema.For[UnhealthyApplicationResourcesOutput](&jsonschema.ForOptions{
+			TypeSchemas: map[reflect.Type]*jsonschema.Schema{
+				// reflect.TypeFor[UnhealthyResources](): resourcesStatusSchema,
+				reflect.TypeFor[metav1.Time](): {
+					Type: "string", // see https://github.com/modelcontextprotocol/go-sdk/pull/470
+				},
+			},
+		})
+
+		// then
+		require.NoError(t, err)
+		assert.Equal(t, UnhealthyApplicationResourcesOutputSchema, schema)
 	})
 }

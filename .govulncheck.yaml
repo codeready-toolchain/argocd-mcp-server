@@ -1,10 +1,4 @@
 ignored-vulnerabilities:
-  # MCP Go SDK Vulnerable to Improper Handling of Case Sensitivity in github.com/modelcontextprotocol/go-sdk
-  # Found in: github.com/modelcontextprotocol/go-sdk/mcp@v1.2.0
-  # Fixed in: github.com/modelcontextprotocol/go-sdk/mcp@v1.3.1
-  - id: GO-2026-4569
-    info: https://pkg.go.dev/vuln/GO-2026-4569
-    silence-until: 2026-04-22
   # Incorrect parsing of IPv6 host literals in net/url
   # Found in: net/url@go1.24.13
   # Fixed in: net/url@go1.25.8
