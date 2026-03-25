@@ -49,75 +49,18 @@ task build-image
 Create a local account in Argo CD with `apiKey` capabilities only (not need for `login`). See [Argo CD documentation for more information](https://argo-cd.readthedocs.io/en/stable/operator-manual/user-management/). 
 Once create, generate a token via the 'Settings > Accounts' page in the Argo CD UI or via the `argocd account generate-token` command and store the token in a `token-file` which will be passed as an argument when running the server (see below).
 
-### Stdio Transport with Claude Desktop App
-
-On macOS, run the following command:
-
-```
-code ~/Library/Application\ Support/Claude/claude_desktop_config.json
-```
-
-and add the following MCP server definition:
-```
-{
-    "mcpServers": {
-        "argocd-mcp-server": {
-            "command": "<path/to/argocd-mcp-server>",
-            "args": [
-                "--transport",
-                "stdio",
-                "--argocd-token"
-                "<token>",
-                "--argocd-url",
-                "<url>",
-                "--insecure",
-                "<true|false>",
-                "debug",
-                "<true|false>"
-            ]
-        }
-    }
-}
-```
-
-### Stdio Transport in Cursor
-
-Edit your `~/.cursor/mcp.json` file with the following contents:
-
-```
-{
-  "mcpServers": {
-    "argocd-mcp-server": {
-      "command": "<path/to/argocd-mcp-server>",
-      "args": [
-        "--transport",
-        "stdio",
-        "--argocd-token",
-        "<token>",
-        "--argocd-url",
-        "<url>",
-        "--insecure",
-        "<true|false>",
-        "--debug",
-        "<true|false>"
-      ]
-    }
-  }
-}
-```
-
 ### HTTP Transport with Cursor
 
 Start the Argo CD MCP server from the binary after running `task install`:
 
 ```
-argocd-mcp-server --transport=http --argocd-url=<url> --argocd-token=<token> --debug=<true|false> --listen=<[host]:port>
+argocd-mcp-server --argocd-url=<url> --argocd-token=<token> --debug=<true|false> --listen=<[host]:port>
 ```
 
 Or start the Argo CD MCP server as a container after running `task build-image`:
 
 ```bash
-podman run -d --name argocd-mcp-server --transport http -e ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0 -e ARGOCD_MCP_URL=<url> -e ARGOCD_MCP_TOKEN=<token> -e ARGOCD_MCP_DEBUG=<true|false> -p 8080:8080 argocd-mcp-server:latest
+podman run -d --name argocd-mcp-server -e ARGOCD_MCP_SERVER_LISTEN_HOST=0.0.0.0 -e ARGOCD_MCP_URL=<url> -e ARGOCD_MCP_TOKEN=<token> -e ARGOCD_MCP_DEBUG=<true|false> -p 8080:8080 argocd-mcp-server:latest
 ```
 
 Edit your `~/.cursor/mcp.json` file with the following contents:
