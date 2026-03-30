@@ -2,7 +2,7 @@
 # Builder image
 # See https://hub.docker.com/_/golang/
 ################################################################################################
-FROM golang:1.25 as argocd-mock-server-builder
+FROM mirror.gcr.io/library/golang:1.25 as argocd-mock-server-builder
 
 WORKDIR /usr/src/app
 
