@@ -2,7 +2,7 @@
 # Builder image
 # See https://hub.docker.com/_/golang/
 ################################################################################################
-FROM --platform=$BUILDPLATFORM golang:1.25 AS builder
+FROM --platform=$BUILDPLATFORM mirror.gcr.io/library/golang:1.25 AS builder
 
 WORKDIR /usr/src/app
 
@@ -41,4 +41,4 @@ USER 1001
 
 EXPOSE ${ARGOCD_MCP_SERVER_LISTEN_PORT}
 
-CMD /usr/local/bin/argocd-mcp-server --transport http --argocd-url $ARGOCD_URL --argocd-token $ARGOCD_TOKEN --insecure=$ARGOCD_MCP_SERVER_INSECURE --debug=$ARGOCD_MCP_SERVER_DEBUG --stateless=$ARGOCD_MCP_SERVER_STATELESS --listen $ARGOCD_MCP_SERVER_LISTEN_HOST:$ARGOCD_MCP_SERVER_LISTEN_PORT
+CMD /usr/local/bin/argocd-mcp-server --argocd-url $ARGOCD_URL --argocd-token $ARGOCD_TOKEN --insecure=$ARGOCD_MCP_SERVER_INSECURE --debug=$ARGOCD_MCP_SERVER_DEBUG --stateless=$ARGOCD_MCP_SERVER_STATELESS --listen $ARGOCD_MCP_SERVER_LISTEN_HOST:$ARGOCD_MCP_SERVER_LISTEN_PORT

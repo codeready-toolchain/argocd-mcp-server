@@ -2,6 +2,7 @@ name: argocd-mcp-server-e2e
 
 services:
   argocd-server-mock:
+    container_name: argocd-server-mock
     image: argocd-server-mock
     build:
       context: .
@@ -15,6 +16,7 @@ services:
       - ARGOCD_SERVER_MOCK_DEBUG=true
   argocd-mcp-server-ok:
     # instance of the Argo CD MCP server with a valid URL for the Argo CD server
+    container_name: argocd-mcp-server
     image: argocd-mcp-server
     build:
       context: .
@@ -30,6 +32,7 @@ services:
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   argocd-mcp-server-unreachable:
     # instance of the Argo CD MCP server with an invalid URL for the Argo CD server
+    container_name: argocd-mcp-server-unreachable
     image: argocd-mcp-server
     ports:
       - "50082:8080"
@@ -42,6 +45,7 @@ services:
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   argocd-mcp-server-stateless-replica1:
     # instance of the Argo CD MCP server with a valid URL for the Argo CD server and stateless mode enabled
+    container_name: argocd-mcp-server-stateless-replica1
     image: argocd-mcp-server
     environment:
       - ARGOCD_URL=http://argocd-server-mock:50084
@@ -53,6 +57,7 @@ services:
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   argocd-mcp-server-stateless-replica2:
     # instance of the Argo CD MCP server with a valid URL for the Argo CD server and stateless mode enabled
+    container_name: argocd-mcp-server-stateless-replica2
     image: argocd-mcp-server
     environment:
       - ARGOCD_URL=http://argocd-server-mock:50084
@@ -64,6 +69,7 @@ services:
       - ARGOCD_MCP_SERVER_LISTEN_PORT=8080
   load-balancer:
     # load balancer to balance the traffic between the Argo CD MCP server instances
+    container_name: argocd-mcp-server-load-balancer
     image: nginx:alpine
     ports:
       - "50090:80"
