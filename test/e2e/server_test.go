@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"math"
-	"os/exec"
-	"strconv"
 	"testing"
 
 	toolchaintests "github.com/codeready-toolchain/toolchain-e2e/testsupport/metrics"
@@ -23,7 +21,7 @@ import (
 // Note: make sure you ran `task install` before running this test
 // ------------------------------------------------------------------------------------------------
 
-// TestServer verifies basic MCP functionality with both stdio and http transports.
+// TestServer verifies basic MCP functionality with http transport.
 // Both transports run in stateful mode (ListChanged enabled) and test:
 // - Tool calls (argocd_list_unhealthy_applications, argocd_list_unhealthy_application_resources)
 // - Error handling (argocd-error, unreachable scenarios)
@@ -31,250 +29,196 @@ import (
 // - Session reuse across multiple tool calls
 func TestStatefulServer(t *testing.T) {
 
-	testdata := []struct {
-		name string
-		init func(*testing.T) *mcp.ClientSession
-	}{
-		{
-			name: "stdio",
-			init: newStdioSession(true, "http://localhost:50084", "secure-token", true),
-		},
-		{
-			name: "http",
-			init: func(t *testing.T) *mcp.ClientSession {
-				ctx := context.Background()
-				session, err := newHTTPSession(ctx, "http://localhost:50081/mcp", "e2e-test-client")
-				require.NoError(t, err)
-				return session
-			},
-		},
-	}
+	t.Run("server-ok", func(t *testing.T) {
+		// Test http transport with a valid Argo CD client (stateful mode)
+		// given
+		ctx := context.Background()
+		session, err := newHTTPSession(ctx, "http://localhost:50081/mcp", "e2e-test-client")
+		require.NoError(t, err)
+		defer session.Close()
 
-	// Test stdio and http transports with a valid Argo CD client (stateful mode)
-	for _, td := range testdata {
-		t.Run(td.name, func(t *testing.T) {
-			// given
-			session := td.init(t)
-			defer session.Close()
-
-			t.Run("call/argocd_list_unhealthy_applications/ok", func(t *testing.T) {
-				// get the metrics before the call
-				var mcpCallsTotalMetricBefore int64
-				var mcpCallsDurationSecondsInfBucketBefore int64
-				if td.name == "http" {
-					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
-						"method":  "tools/call",
-						"name":    "argocd_list_unhealthy_applications",
-						"success": "true",
-					})
-				}
-
-				// when
-				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-					Name: "argocd_list_unhealthy_applications",
-				})
-
-				// then
-				require.NoError(t, err)
-				require.False(t, result.IsError, result.Content[0].(*mcp.TextContent).Text)
-				// expected content
-				expectedContent := map[string]any{
-					"degraded":    []any{"a-degraded-application", "another-degraded-application"},
-					"progressing": []any{"a-progressing-application", "another-progressing-application"},
-					"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
-				}
-				expectedContentText, err := json.Marshal(expectedContent)
-				require.NoError(t, err)
-				// verify the `text` result
-				resultContent, ok := result.Content[0].(*mcp.TextContent)
-				require.True(t, ok)
-				assert.JSONEq(t, string(expectedContentText), resultContent.Text)
-				// verify the `structured` content
-				require.IsType(t, map[string]any{}, result.StructuredContent)
-				actualStructuredContent := map[string]any{}
-				err = runtime.DefaultUnstructuredConverter.FromUnstructured(result.StructuredContent.(map[string]any), &actualStructuredContent)
-				require.NoError(t, err)
-				assert.Equal(t, expectedContent, actualStructuredContent)
-				// also, check the metrics when the server runs on HTTP
-				if td.name == "http" {
-					// get the metrics after the call
-					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
-						"method":  "tools/call",
-						"name":    "argocd_list_unhealthy_applications",
-						"success": "true",
-					})
-					assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
-					assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
-				}
-
+		t.Run("call/argocd_list_unhealthy_applications/ok", func(t *testing.T) {
+			// get the metrics before the call
+			var mcpCallsTotalMetricBefore int64
+			var mcpCallsDurationSecondsInfBucketBefore int64
+			mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
+				"server":  "argocd-mcp-server",
+				"method":  "tools/call",
+				"name":    "argocd_list_unhealthy_applications",
+				"success": "true",
 			})
 
-			t.Run("call/argocd_list_unhealthy_application_resources/ok", func(t *testing.T) {
-				var mcpCallsTotalMetricBefore int64
-				var mcpCallsDurationSecondsInfBucketBefore int64
-				if td.name == "http" {
-					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
-						"method":  "tools/call",
-						"name":    "argocd_list_unhealthy_application_resources",
-						"success": "true",
-					})
-				}
-
-				// when
-				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-					Name: "argocd_list_unhealthy_application_resources",
-					Arguments: map[string]any{
-						"name": "example",
-					},
-				})
-
-				// then
-				require.NoError(t, err)
-				expectedContent := argocd.UnhealthyResources{
-					Resources: []argocdv3.ResourceStatus{
-						{
-							Group:     "apps",
-							Version:   "v1",
-							Kind:      "StatefulSet",
-							Namespace: "example-ns",
-							Name:      "example",
-							Status:    "Synced",
-							Health: &argocdv3.HealthStatus{
-								Status:  "Progressing",
-								Message: "Waiting for 1 pods to be ready...",
-							},
-						},
-						{
-							Group:     "external-secrets.io",
-							Version:   "v1beta1",
-							Kind:      "ExternalSecret",
-							Namespace: "example-ns",
-							Name:      "example-secret",
-							Status:    "OutOfSync",
-							Health: &argocdv3.HealthStatus{
-								Status: "Missing",
-							},
-						},
-						{
-							Group:   "operator.tekton.dev",
-							Version: "v1alpha1",
-							Kind:    "TektonConfig",
-							Name:    "config",
-							Status:  "OutOfSync",
-						},
-					},
-				}
-				expectedResourcesText, err := json.Marshal(expectedContent)
-				require.NoError(t, err)
-
-				// verify the `text` result
-				resultContent, ok := result.Content[0].(*mcp.TextContent)
-				require.True(t, ok)
-				assert.JSONEq(t, string(expectedResourcesText), resultContent.Text)
-
-				// verify the `structured` content
-				require.IsType(t, map[string]any{}, result.StructuredContent)
-				actualStructuredContent := argocd.UnhealthyResources{}
-				err = runtime.DefaultUnstructuredConverter.FromUnstructured(result.StructuredContent.(map[string]any), &actualStructuredContent)
-				require.NoError(t, err)
-				assert.Equal(t, expectedContent, actualStructuredContent)
-				if td.name == "http" {
-					// get the metrics after the call
-					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
-						"method":  "tools/call",
-						"name":    "argocd_list_unhealthy_application_resources",
-						"success": "true",
-					})
-					assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
-					assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
-				}
+			// when
+			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+				Name: "argocd_list_unhealthy_applications",
 			})
 
-			t.Run("call/argocd_list_unhealthy_application_resources/argocd-error", func(t *testing.T) {
-				var mcpCallsTotalMetricBefore int64
-				var mcpCallsDurationSecondsInfBucketBefore int64
-				if td.name == "http" {
-					mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
-						"method":  "tools/call",
-						"name":    "argocd_list_unhealthy_application_resources",
-						"success": "false",
-					})
-				}
-
-				// when
-				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-					Name: "argocd_list_unhealthy_application_resources",
-					Arguments: map[string]any{
-						"name": "example-error",
-					},
-				})
-
-				// then
-				require.NoError(t, err)
-				assert.True(t, result.IsError)
-				if td.name == "http" {
-					// get the metrics after the call
-					mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
-						"server":  "argocd-mcp-server",
-						"method":  "tools/call",
-						"name":    "argocd_list_unhealthy_application_resources",
-						"success": "false",
-					})
-					assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
-					assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
-				}
+			// then
+			require.NoError(t, err)
+			require.False(t, result.IsError, result.Content[0].(*mcp.TextContent).Text)
+			// expected content
+			expectedContent := map[string]any{
+				"degraded":    []any{"a-degraded-application", "another-degraded-application"},
+				"progressing": []any{"a-progressing-application", "another-progressing-application"},
+				"outOfSync":   []any{"an-out-of-sync-application", "another-out-of-sync-application"},
+			}
+			expectedContentText, err := json.Marshal(expectedContent)
+			require.NoError(t, err)
+			// verify the `text` result
+			resultContent, ok := result.Content[0].(*mcp.TextContent)
+			require.True(t, ok)
+			assert.JSONEq(t, string(expectedContentText), resultContent.Text)
+			// verify the `structured` content
+			require.IsType(t, map[string]any{}, result.StructuredContent)
+			actualStructuredContent := map[string]any{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(result.StructuredContent.(map[string]any), &actualStructuredContent)
+			require.NoError(t, err)
+			assert.Equal(t, expectedContent, actualStructuredContent)
+			// also, check the metrics
+			mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
+				"server":  "argocd-mcp-server",
+				"method":  "tools/call",
+				"name":    "argocd_list_unhealthy_applications",
+				"success": "true",
 			})
-
-			t.Run("verify/capabilities/listChanged", func(t *testing.T) {
-				// Both stdio and http transports use stateful mode by default
-				assertListChanged(t, session, true)
-			})
-		})
-	}
-
-	testdataUnreachable := []struct {
-		name string
-		init func(*testing.T) *mcp.ClientSession
-	}{
-		{
-			name: "stdio-unreachable",
-			init: newStdioSession(true, "http://localhost:50085", "another-token", true), // invalid URL and token for the Argo CD server
-		},
-		{
-			name: "http-unreachable",
-			init: func(t *testing.T) *mcp.ClientSession {
-				ctx := context.Background()
-				session, err := newHTTPSession(ctx, "http://localhost:50082/mcp", "e2e-test-client")
-				require.NoError(t, err)
-				return session
-			}, // invalid URL and token for the Argo CD server
-		},
-	}
-
-	// test stdio and http transports with an invalid Argo CD client
-	for _, td := range testdataUnreachable {
-		t.Run(td.name, func(t *testing.T) {
-			// given
-			session := td.init(t)
-			defer session.Close()
-			t.Run("call/argocd_list_unhealthy_applications/argocd-unreachable", func(t *testing.T) {
-				// when
-				result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-					Name: "argocd_list_unhealthy_applications",
-				})
-
-				// then
-				require.NoError(t, err)
-				assert.True(t, result.IsError, "expected error, got %v", result)
-			})
+			assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
+			assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
 		})
 
-	}
+		t.Run("call/argocd_list_unhealthy_application_resources/ok", func(t *testing.T) {
+			var mcpCallsTotalMetricBefore int64
+			var mcpCallsDurationSecondsInfBucketBefore int64
+			mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
+				"server":  "argocd-mcp-server",
+				"method":  "tools/call",
+				"name":    "argocd_list_unhealthy_application_resources",
+				"success": "true",
+			})
+
+			// when
+			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+				Name: "argocd_list_unhealthy_application_resources",
+				Arguments: map[string]any{
+					"name": "example",
+				},
+			})
+
+			// then
+			require.NoError(t, err)
+			expectedContent := argocd.UnhealthyResources{
+				Resources: []argocdv3.ResourceStatus{
+					{
+						Group:     "apps",
+						Version:   "v1",
+						Kind:      "StatefulSet",
+						Namespace: "example-ns",
+						Name:      "example",
+						Status:    "Synced",
+						Health: &argocdv3.HealthStatus{
+							Status:  "Progressing",
+							Message: "Waiting for 1 pods to be ready...",
+						},
+					},
+					{
+						Group:     "external-secrets.io",
+						Version:   "v1beta1",
+						Kind:      "ExternalSecret",
+						Namespace: "example-ns",
+						Name:      "example-secret",
+						Status:    "OutOfSync",
+						Health: &argocdv3.HealthStatus{
+							Status: "Missing",
+						},
+					},
+					{
+						Group:   "operator.tekton.dev",
+						Version: "v1alpha1",
+						Kind:    "TektonConfig",
+						Name:    "config",
+						Status:  "OutOfSync",
+					},
+				},
+			}
+			expectedResourcesText, err := json.Marshal(expectedContent)
+			require.NoError(t, err)
+
+			// verify the `text` result
+			resultContent, ok := result.Content[0].(*mcp.TextContent)
+			require.True(t, ok)
+			assert.JSONEq(t, string(expectedResourcesText), resultContent.Text)
+
+			// verify the `structured` content
+			require.IsType(t, map[string]any{}, result.StructuredContent)
+			actualStructuredContent := argocd.UnhealthyResources{}
+			err = runtime.DefaultUnstructuredConverter.FromUnstructured(result.StructuredContent.(map[string]any), &actualStructuredContent)
+			require.NoError(t, err)
+			assert.Equal(t, expectedContent, actualStructuredContent)
+			// also, check the metrics
+			mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
+				"server":  "argocd-mcp-server",
+				"method":  "tools/call",
+				"name":    "argocd_list_unhealthy_application_resources",
+				"success": "true",
+			})
+			assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
+			assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
+		})
+
+		t.Run("call/argocd_list_unhealthy_application_resources/argocd-error", func(t *testing.T) {
+			var mcpCallsTotalMetricBefore int64
+			var mcpCallsDurationSecondsInfBucketBefore int64
+			mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
+				"server":  "argocd-mcp-server",
+				"method":  "tools/call",
+				"name":    "argocd_list_unhealthy_application_resources",
+				"success": "false",
+			})
+
+			// when
+			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+				Name: "argocd_list_unhealthy_application_resources",
+				Arguments: map[string]any{
+					"name": "example-error",
+				},
+			})
+
+			// then
+			require.NoError(t, err)
+			assert.True(t, result.IsError)
+			// also, check the metrics
+			mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
+				"server":  "argocd-mcp-server",
+				"method":  "tools/call",
+				"name":    "argocd_list_unhealthy_application_resources",
+				"success": "false",
+			})
+			assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
+			assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
+		})
+
+		t.Run("verify/capabilities/listChanged", func(t *testing.T) {
+			assertListChanged(t, session, true)
+		})
+	})
+
+	// test http transport with an invalid Argo CD client
+	t.Run("server-unreachable", func(t *testing.T) {
+		// given
+		ctx := context.Background()
+		session, err := newHTTPSession(ctx, "http://localhost:50082/mcp", "e2e-test-client")
+		require.NoError(t, err)
+		defer session.Close()
+		t.Run("call/argocd_list_unhealthy_applications/argocd-unreachable", func(t *testing.T) {
+			// when
+			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
+				Name: "argocd_list_unhealthy_applications",
+			})
+
+			// then
+			require.NoError(t, err)
+			assert.True(t, result.IsError, "expected error, got %v", result)
+		})
+	})
 }
 
 // TestStateless verifies that multiple stateless server instances work correctly
@@ -350,28 +294,6 @@ func getMetrics(t *testing.T, mcpServerURL string, labels map[string]string) (in
 		}
 	}
 	return mcpCallsTotalMetric, mcpCallsDurationSecondsInf
-}
-
-func newStdioSession(mcpServerDebug bool, argocdURL string, argocdToken string, argocdInsecureURL bool) func(*testing.T) *mcp.ClientSession {
-	return func(t *testing.T) *mcp.ClientSession {
-		ctx := context.Background()
-		cmd := newStdioServerCmd(ctx, mcpServerDebug, argocdURL, argocdToken, argocdInsecureURL)
-		cl := mcp.NewClient(&mcp.Implementation{Name: "e2e-test-client", Version: "v1.0.0"}, nil)
-		session, err := cl.Connect(ctx, &mcp.CommandTransport{Command: cmd}, nil)
-		require.NoError(t, err)
-		return session
-	}
-}
-
-func newStdioServerCmd(ctx context.Context, mcpServerDebug bool, argocdURL string, argocdToken string, argocdInsecureURL bool) *exec.Cmd {
-	return exec.CommandContext(ctx, //nolint:gosec
-		"argocd-mcp-server",
-		"--transport", "stdio",
-		"--debug", strconv.FormatBool(mcpServerDebug),
-		"--argocd-url", argocdURL,
-		"--argocd-token", argocdToken,
-		"--insecure", strconv.FormatBool(argocdInsecureURL),
-	)
 }
 
 func newHTTPSession(ctx context.Context, endpoint, clientName string) (*mcp.ClientSession, error) {
