@@ -8,7 +8,7 @@ require (
 	github.com/argoproj/argo-cd/v3 v3.3.9
 	github.com/argoproj/gitops-engine v0.7.1-0.20250908182407-97ad5b59a627
 	github.com/codeready-toolchain/mcp-common v0.0.0-20260311065550-14ceedd27660
-	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260112152755-eb77a8e22ccb
+	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260519163639-b57dc7a88c12
 	github.com/google/jsonschema-go v0.4.2
 	github.com/h2non/gock v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.4.1
