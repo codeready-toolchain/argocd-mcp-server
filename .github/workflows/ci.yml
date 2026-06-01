@@ -28,6 +28,12 @@ jobs:
     - name: Test
       run: |
         task test
+    
+    - name: Upload coverage artifact
+      uses: actions/upload-artifact@v7
+      with:
+        name: coverage
+        path: ./build/_output/coverage/coverage.txt    
 
     - name: Install Podman
       uses: redhat-actions/podman-install@main
