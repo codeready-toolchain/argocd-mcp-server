@@ -12,6 +12,11 @@ tasks:
     cmds:
       - curl -sSfL https://golangci-lint.run/install.sh | sh -s -- -b $GOPATH/bin
       - $GOPATH/bin/golangci-lint run -v -c .golangci.yml ./...
+  
+  # Vulnerability Scanning
+  vuln-scan:
+    cmds:
+      - govulncheckx --path=. --config .govulncheck.yaml
 
   # Vulnerability Scanning
   vuln-scan:

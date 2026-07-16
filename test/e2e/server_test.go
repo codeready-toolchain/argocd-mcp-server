@@ -23,7 +23,7 @@ import (
 
 // TestServer verifies basic MCP functionality with http transport.
 // Both transports run in stateful mode (ListChanged enabled) and test:
-// - Tool calls (argocd_list_unhealthy_applications, argocd_list_unhealthy_application_resources)
+// - Tool calls (argocd-list-unhealthy-applications, argocd-list-unhealthy-application-resources)
 // - Error handling (argocd-error, unreachable scenarios)
 // - Metrics collection (for http transport)
 // - Session reuse across multiple tool calls
@@ -37,20 +37,20 @@ func TestStatefulServer(t *testing.T) {
 		require.NoError(t, err)
 		defer session.Close()
 
-		t.Run("call/argocd_list_unhealthy_applications/ok", func(t *testing.T) {
+		t.Run("call/argocd-list-unhealthy-applications/ok", func(t *testing.T) {
 			// get the metrics before the call
 			var mcpCallsTotalMetricBefore int64
 			var mcpCallsDurationSecondsInfBucketBefore int64
 			mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
 				"server":  "argocd-mcp-server",
 				"method":  "tools/call",
-				"name":    "argocd_list_unhealthy_applications",
+				"name":    "argocd-list-unhealthy-applications",
 				"success": "true",
 			})
 
 			// when
 			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-				Name: "argocd_list_unhealthy_applications",
+				Name: "argocd-list-unhealthy-applications",
 			})
 
 			// then
@@ -78,26 +78,26 @@ func TestStatefulServer(t *testing.T) {
 			mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
 				"server":  "argocd-mcp-server",
 				"method":  "tools/call",
-				"name":    "argocd_list_unhealthy_applications",
+				"name":    "argocd-list-unhealthy-applications",
 				"success": "true",
 			})
 			assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
 			assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
 		})
 
-		t.Run("call/argocd_list_unhealthy_application_resources/ok", func(t *testing.T) {
+		t.Run("call/argocd-list-unhealthy-application-resources/ok", func(t *testing.T) {
 			var mcpCallsTotalMetricBefore int64
 			var mcpCallsDurationSecondsInfBucketBefore int64
 			mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
 				"server":  "argocd-mcp-server",
 				"method":  "tools/call",
-				"name":    "argocd_list_unhealthy_application_resources",
+				"name":    "argocd-list-unhealthy-application-resources",
 				"success": "true",
 			})
 
 			// when
 			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-				Name: "argocd_list_unhealthy_application_resources",
+				Name: "argocd-list-unhealthy-application-resources",
 				Arguments: map[string]any{
 					"name": "example",
 				},
@@ -157,26 +157,26 @@ func TestStatefulServer(t *testing.T) {
 			mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
 				"server":  "argocd-mcp-server",
 				"method":  "tools/call",
-				"name":    "argocd_list_unhealthy_application_resources",
+				"name":    "argocd-list-unhealthy-application-resources",
 				"success": "true",
 			})
 			assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
 			assert.Equal(t, mcpCallsDurationSecondsInfBucketBefore+1, mcpCallsDurationSecondsInfBucketAfter)
 		})
 
-		t.Run("call/argocd_list_unhealthy_application_resources/argocd-error", func(t *testing.T) {
+		t.Run("call/argocd-list-unhealthy-application-resources/argocd-error", func(t *testing.T) {
 			var mcpCallsTotalMetricBefore int64
 			var mcpCallsDurationSecondsInfBucketBefore int64
 			mcpCallsTotalMetricBefore, mcpCallsDurationSecondsInfBucketBefore = getMetrics(t, "http://localhost:50081", map[string]string{
 				"server":  "argocd-mcp-server",
 				"method":  "tools/call",
-				"name":    "argocd_list_unhealthy_application_resources",
+				"name":    "argocd-list-unhealthy-application-resources",
 				"success": "false",
 			})
 
 			// when
 			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-				Name: "argocd_list_unhealthy_application_resources",
+				Name: "argocd-list-unhealthy-application-resources",
 				Arguments: map[string]any{
 					"name": "example-error",
 				},
@@ -189,7 +189,7 @@ func TestStatefulServer(t *testing.T) {
 			mcpCallsTotalMetricAfter, mcpCallsDurationSecondsInfBucketAfter := getMetrics(t, "http://localhost:50081", map[string]string{
 				"server":  "argocd-mcp-server",
 				"method":  "tools/call",
-				"name":    "argocd_list_unhealthy_application_resources",
+				"name":    "argocd-list-unhealthy-application-resources",
 				"success": "false",
 			})
 			assert.Equal(t, mcpCallsTotalMetricBefore+1, mcpCallsTotalMetricAfter)
@@ -208,10 +208,10 @@ func TestStatefulServer(t *testing.T) {
 		session, err := newHTTPSession(ctx, "http://localhost:50082/mcp", "e2e-test-client")
 		require.NoError(t, err)
 		defer session.Close()
-		t.Run("call/argocd_list_unhealthy_applications/argocd-unreachable", func(t *testing.T) {
+		t.Run("call/argocd-list-unhealthy-applications/argocd-unreachable", func(t *testing.T) {
 			// when
 			result, err := session.CallTool(context.Background(), &mcp.CallToolParams{
-				Name: "argocd_list_unhealthy_applications",
+				Name: "argocd-list-unhealthy-applications",
 			})
 
 			// then
@@ -250,7 +250,7 @@ func TestStatelessServer(t *testing.T) {
 
 	// Step 4: Verify tools work correctly with content validation
 	result, callErr := session.CallTool(ctx, &mcp.CallToolParams{
-		Name: "argocd_list_unhealthy_applications",
+		Name: "argocd-list-unhealthy-applications",
 	})
 	require.NoError(t, callErr)
 	require.False(t, result.IsError, "tool call should succeed")
