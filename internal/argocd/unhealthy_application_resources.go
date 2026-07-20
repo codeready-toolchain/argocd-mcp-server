@@ -16,7 +16,7 @@ import (
 )
 
 var UnhealthyResourcesPrompt = &mcp.Prompt{
-	Name:        "argocd-unhealthy-application-resources",
+	Name:        "argocd_unhealthy_application_resources",
 	Description: "The unhealthy resources of the Argo CD Application prompt",
 	Arguments: []*mcp.PromptArgument{
 		{
@@ -88,7 +88,7 @@ func init() {
 		log.Fatalf("failed to create UnhealthyApplicationResourcesOutputSchema: %v", err.Error())
 	}
 	UnhealthyApplicationResourcesTool = &mcp.Tool{
-		Name:         "argocd-list-unhealthy-application-resources",
+		Name:         "argocd_list_unhealthy_application_resources",
 		Description:  "list unhealthy resources of a given Argo CD Application",
 		InputSchema:  UnhealthyApplicationResourcesInputSchema,
 		OutputSchema: UnhealthyApplicationResourcesOutputSchema,
@@ -125,7 +125,7 @@ func listUnhealthyApplicationResources(ctx context.Context, logger *slog.Logger,
 		if err != nil {
 			logger.Error("failed to convert unhealthy resources to text", "error", err.Error())
 		}
-		logger.DebugContext(ctx, "returned 'tools/call' response", "tool", "argocd-list-unhealthy-application-resources", "app", name, "result", string(unhealthyResourcesStr))
+		logger.DebugContext(ctx, "returned 'tools/call' response", "tool", "argocd_list_unhealthy_application_resources", "app", name, "result", string(unhealthyResourcesStr))
 	}
 	return UnhealthyResources{
 		Resources: unhealthyResources,
