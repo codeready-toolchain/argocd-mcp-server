@@ -25,7 +25,7 @@ jobs:
           platforms: linux/amd64
 
       - name: Log into quay.io
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@v2
         with:
           registry: quay.io
           username: codeready-toolchain+push
