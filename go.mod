@@ -7,8 +7,8 @@ toolchain go1.26.5
 require (
 	github.com/argoproj/argo-cd/v3 v3.3.10
 	github.com/argoproj/gitops-engine v0.7.1-0.20250908182407-97ad5b59a627
-	github.com/codeready-toolchain/mcp-common v0.0.0-20260311065550-14ceedd27660
-	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260519163639-b57dc7a88c12
+	github.com/codeready-toolchain/mcp-common v0.0.0-20260811143708-491c72342347
+	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260810192443-483f4125c7fe
 	github.com/google/jsonschema-go v0.4.3
 	github.com/h2non/gock v1.2.0
 	github.com/modelcontextprotocol/go-sdk v1.6.1
@@ -138,10 +138,10 @@ require (
 	golang.org/x/crypto v0.52.0 // indirect
 	golang.org/x/net v0.55.0 // indirect
 	golang.org/x/oauth2 v0.35.0 // indirect
-	golang.org/x/sync v0.20.0 // indirect
+	golang.org/x/sync v0.21.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/term v0.43.0 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/text v0.39.0 // indirect
 	golang.org/x/time v0.14.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20251202230838-ff82c1b0f217 // indirect
 	google.golang.org/grpc v1.79.3 // indirect
