@@ -5,7 +5,7 @@ Argo CD MCP is a Model Context Protocol Server to converse with Argo CD from a U
 ## Features
 
 - Prompts:
-  - `argocd-unhealthy-application-resources`: list the Unhealthy (`Degraded` and `Progressing`) Applications in Argo CD
+  - `argocd_unhealthy_application_resources`: list the Unhealthy (`Degraded` and `Progressing`) Applications in Argo CD
 - Tools:
   - `argocd_list_unhealthy_applications`: list the unhealthy (`Degraded` and `Progressing`) Applications in Argo CD
   - `argocd_list_unhealthy_application_resources`: list unhealthy resources of a given Argo CD Application

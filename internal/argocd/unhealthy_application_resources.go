@@ -16,7 +16,7 @@ import (
 )
 
 var UnhealthyResourcesPrompt = &mcp.Prompt{
-	Name:        "argocd-unhealthy-application-resources",
+	Name:        "argocd_unhealthy_application_resources",
 	Description: "The unhealthy resources of the Argo CD Application prompt",
 	Arguments: []*mcp.PromptArgument{
 		{
