@@ -17,7 +17,7 @@ jobs:
   
       - name: Build image
         id: build-image
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: codeready-toolchain/argocd-mcp-server
           tags: latest ${{ env.COMMIT_SHORT_SHA }}
@@ -25,7 +25,7 @@ jobs:
           platforms: linux/amd64
 
       - name: Log into quay.io
-        uses: redhat-actions/podman-login@v1
+        uses: redhat-actions/podman-login@v2
         with:
           registry: quay.io
           username: codeready-toolchain+push
@@ -33,7 +33,7 @@ jobs:
     
       - name: Push to quay.io
         id: push-to-quay
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         with:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
