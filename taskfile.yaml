@@ -1,11 +1,24 @@
 version: '3'
 
+vars:
+  OUT_DIR: ./build/_output
+  COV_DIR: ./build/_output/coverage
+
 tasks:
+  ensure-dirs:
+    cmds:
+      - mkdir -p {{.OUT_DIR}}
+    silent: true
+
   # Unit Tests
   test:
+    desc: Run tests with coverage
     cmds:
+      - echo "running the tests with coverage..."
+      - mkdir -p {{.COV_DIR}}
+      - rm -f {{.COV_DIR}}/coverage.txt
       # The idiomatic way to disable test caching explicitly is to use -count=1
-      - go test ./internal/... -count=1 -v --failfast
+      - go test ./internal/... -count=1 -v --failfast -coverprofile={{.COV_DIR}}/coverage.txt -covermode=atomic
 
   # Linting
   lint:
