@@ -3,7 +3,7 @@ module github.com/codeready-toolchain/argocd-mcp-server
 go 1.26.9
 
 require (
-	github.com/argoproj/argo-cd/v3 v3.3.10
+	github.com/argoproj/argo-cd/v3 v3.3.15
 	github.com/argoproj/gitops-engine v0.7.1-0.20250908182407-97ad5b59a627
 	github.com/codeready-toolchain/mcp-common v0.0.0-20260811143708-491c72342347
 	github.com/codeready-toolchain/toolchain-e2e v0.0.0-20260810192443-483f4125c7fe
