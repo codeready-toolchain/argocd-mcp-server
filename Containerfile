@@ -2,7 +2,7 @@
 # Builder image
 # See https://hub.docker.com/_/golang/
 ################################################################################################
-FROM --platform=$BUILDPLATFORM mirror.gcr.io/library/golang:1.26 AS builder
+FROM --platform=$BUILDPLATFORM mirror.gcr.io/library/golang:1.27 AS builder
 
 WORKDIR /usr/src/app
 
@@ -10,6 +10,8 @@ ARG TARGETOS
 ARG TARGETARCH
 
 RUN echo "Building the 'argocd-mcp-server' binary for $TARGETOS/$TARGETARCH"
+
+ENV GOTOOLCHAIN=auto
 
 # pre-copy/cache parent go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
 COPY go.mod go.sum ./
