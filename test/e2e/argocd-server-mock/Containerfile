@@ -4,6 +4,8 @@
 ################################################################################################
 FROM mirror.gcr.io/library/golang:1.27 as argocd-mock-server-builder
 
+ENV GOTOOLCHAIN=auto
+
 WORKDIR /usr/src/app
 
 # pre-copy/cache parent go.mod for pre-downloading dependencies and only redownloading them in subsequent builds if they change
