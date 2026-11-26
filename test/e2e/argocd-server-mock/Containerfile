@@ -21,7 +21,7 @@ RUN ls -la /usr/src/app/argocd-mock-server
 ################################################################################################
 # image to be run by the GitHub Action job
 ################################################################################################
-FROM registry.access.redhat.com/ubi9/ubi-minimal:latest as argocd-mock-server
+FROM registry.access.redhat.com/ubi10/ubi-minimal:latest as argocd-mock-server
 
 # Copy the generated binary into the $PATH so it can be invoked
 COPY --from=argocd-mock-server-builder /usr/src/app/argocd-mock-server /usr/local/bin/

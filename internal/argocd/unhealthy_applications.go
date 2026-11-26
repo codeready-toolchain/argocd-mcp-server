@@ -9,8 +9,8 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
+	argocdhealth "github.com/argoproj/argo-cd/gitops-engine/v3/pkg/health"
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	argocdhealth "github.com/argoproj/gitops-engine/pkg/health"
 )
 
 type UnhealthyApplicationsInput struct{}

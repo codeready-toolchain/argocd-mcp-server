@@ -8,8 +8,8 @@ import (
 	"log/slog"
 	"reflect"
 
+	"github.com/argoproj/argo-cd/gitops-engine/v3/pkg/health"
 	argocdv3 "github.com/argoproj/argo-cd/v3/pkg/apis/application/v1alpha1"
-	"github.com/argoproj/gitops-engine/pkg/health"
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
